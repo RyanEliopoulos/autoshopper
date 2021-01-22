@@ -1,0 +1,3 @@
+Using selenium I am able to enter the username/password for my kroger account and consent to my app
+performing things on my behalf.  Will need to figure out how to accept the authorization code included in the redirect
+uri
