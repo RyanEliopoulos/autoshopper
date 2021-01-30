@@ -12,12 +12,8 @@ class Communicator:
     # App credentials
     client_id: str = os.getenv('kroger_app_client_id')
     client_secret: str = os.getenv('kroger_app_client_secret')
+    # API credentials (stand in)
     access_token = None
-    refresh_token = None
-    authorization_code = None
-    # Customer credentials
-    username = os.getenv('kroger_username')
-    password = os.getenv('kroger_password')
     # API urls
     api_base: str = 'https://api.kroger.com/v1/'
     api_token: str = 'connect/oauth2/token'
@@ -27,72 +23,84 @@ class Communicator:
     location_id = '70100460'
     redirect_uri: str = 'http://localhost:8000'
 
-    @staticmethod
-    def get_tokens(grant_type='authorization_code'):
+    def __init__(self):
+        raise NotImplementedError('Should never instantiate this class')
+
+    def get_tokens(self):
         """
-            Authorization code means acting on behalf of a Kroger customer account.
-            client_credentials is acting on behalf of our registered app 
-            
-        :return: None
-        """""
-        if grant_type == 'authorization_code':
-            Communicator.get_authcode()
-            headers = {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            }
-            data = {
-                'grant_type': 'authorization_code'
-                , 'redirect_uri': Communicator.redirect_uri
-                , 'scope': 'profile.compact'
-                , 'code': Communicator.authorization_code
-            }
-            target_url = Communicator.api_base + Communicator.api_token
-            req = Communicator.request('post', target_url, headers=headers, data=data,
-                                       auth=(Communicator.client_id, Communicator.client_secret))
-            if req.status_code != 200:
-                print('error retrieving tokens with authorization_code')
-                print(req.text)
-                exit(4)
-            print('Got access tokens with authorization code')
+            Different implementations will account for the client_credentials and authorization_code
+            grant types.
+        """
+        raise NotImplementedError('Subclass should implement this')
+
+    def get_productinfo(self, product_id):
+        """
+            Pulls product info from the API and returns json/dict format of the response for caller to sort out
+        :return:
+        """
+        # Preparing request
+        headers = {
+            'Accept': 'application/json'
+            , 'Authorization': 'Bearer ' + self.access_token
+        }
+        query_params = {
+            'filter.locationId': Communicator.location_id
+        }
+        encoded_params = urllib.parse.urlencode(query_params)
+        target_url = f'{Communicator.api_base}products/{product_id}?{encoded_params}'
+
+        # Requesting info
+        req = Communicator.request('get', target_url, headers=headers)
+        if req.status_code != 200:
+            print(f'Error retrieving info for product {product_id}')
             print(req.text)
-            req = req.json()
-            Communicator.access_token = req['access_token']
-            Communicator.refresh_token = req['refresh_token']
-
-        elif grant_type == 'client_credentials':
-            # Staging HTTP request content
-            headers = {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            }
-            data = {
-                'grant_type': 'client_credentials'
-                , 'scope': 'product.compact'
-            }
-            target_url = Communicator.api_base + Communicator.api_token
-            # Making Request
-            req = Communicator.request('post', target_url, headers=headers, data=data,
-                                       auth=(Communicator.client_id, Communicator.client_secret))
-            if req.status_code != 200:
-                print('Error retrieving access tokens with client credentials..')
-                print(req.text)
-                exit(1)
-            req = req.json()
-            print(req)
-            Communicator.access_token = req['access_token']
+        req = req.json()
+        return req
 
     @staticmethod
-    def _get_authcode():
+    def request(verb, url, headers=None, data=None, params=None, auth=None):
         """
-            Requires Selenium to emulate customer input, authorizing the app to do it's thing.
-            Kroger includes the authorization code as a param in the redirect url.
+            Centralized place for making calls to the requests library.
+            Centralization might come in handy so..
 
-            Really need a good way to pause until the page is fully loaded
-
-        :return: None
         """
+
+        # Pulling appropriate request method
+        str_to_req = {
+            'post': requests.post
+            , 'get': requests.get
+        }
+        req = str_to_req[verb]
+        response = req(url, headers=headers, data=data, params=params, auth=auth)
+
+        return response
+########################################################################################################################
+
+
+class CustomerCommunicator(Communicator):
+
+    def __init__(self):
+        # Customer credentials
+        self.username = os.getenv('kroger_username')
+        self.password = os.getenv('kroger_password')
+        # API variables
+        self.access_token = None
+        self.refresh_token = None
+        self.authorization_code = None
+
+    def _get_authcode(self):
+
+        """
+                Requires Selenium to emulate customer input, authorizing the app to do it's thing.
+                Kroger includes the authorization code as a param in the redirect url.
+
+                Really need a good way to pause until the page is fully loaded
+
+            :return: None
+            """
         # Preparing URL
         params = {
-            'scope': 'profile.compact cart.basic:write'
+            'scope': 'profile.compact cart.basic:write product.compact'
             , 'client_id': Communicator.client_id
             , 'redirect_uri': Communicator.redirect_uri
             , 'response_type': 'code'
@@ -127,35 +135,53 @@ class Communicator:
             print('full_url: ', full_url)
             exit(3)
 
-        print('Authorization code: ', authorization_code)
-        Communicator.authorization_code = authorization_code
+        self.authorization_code = authorization_code
 
-    @staticmethod
-    def get_productinfo(product_id):
-       """
-            Pulls product info from the API and returns json/dict format of the response for caller to sort out
-       :param product_id:
-       :return:
-       """
-
-
-
-    @staticmethod
-    def request(verb, url, headers=None, data=None, params=None, auth=None):
-        """
-            Centralized place for making calls to the requests library.
-            Centralization might come in handy so..
-
-        """
-
-        # Pulling appropriate request method
-        str_to_req = {
-            'post': requests.post
-            , 'get': requests.get
+    def get_tokens(self):
+        self._get_authcode()
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded'
         }
-        req = str_to_req[verb]
-        response = req(url, headers=headers, data=data, params=params, auth=auth)
+        data = {
+            'grant_type': 'authorization_code'
+            , 'redirect_uri': Communicator.redirect_uri
+            , 'scope': 'profile.compact'
+            , 'code': self.authorization_code
+        }
+        target_url = Communicator.api_base + Communicator.api_token
+        req = Communicator.request('post', target_url, headers=headers, data=data,
+                                   auth=(Communicator.client_id, Communicator.client_secret))
+        if req.status_code != 200:
+            print('error retrieving tokens with authorization_code')
+            print(req.text)
+            exit(4)
+        req = req.json()
+        self.access_token = req['access_token']
+        self.refresh_token = req['refresh_token']
+########################################################################################################################
 
-        return response
 
+class AppCommunicator(Communicator):
 
+    def __init__(self):
+        self.access_token = None
+
+    def get_tokens(self):
+        # Staging HTTP request content
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+        data = {
+            'grant_type': 'client_credentials'
+            , 'scope': 'product.compact'
+        }
+        target_url = Communicator.api_base + Communicator.api_token
+        # Making Request
+        req = Communicator.request('post', target_url, headers=headers, data=data,
+                                   auth=(Communicator.client_id, Communicator.client_secret))
+        if req.status_code != 200:
+            print('Error retrieving access tokens with client credentials..')
+            print(req.text)
+            exit(1)
+        req = req.json()
+        self.access_token = req['access_token']
