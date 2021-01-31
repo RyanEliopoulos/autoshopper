@@ -161,10 +161,11 @@ class CustomerCommunicator(Communicator):
         self.access_token = req['access_token']
         self.refresh_token = req['refresh_token']
 
-    def add_to_cart(self, shopping_list: list[dict]):
+    def add_to_cart(self, shopping_list: list[dict]) -> bool:
         """
 
         :param shopping_list:  [{'upc': <>, 'quantity': <>}, ... ]
+        :return bool indicating success/failure
         """
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
