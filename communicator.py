@@ -6,6 +6,7 @@ from selenium.webdriver.common.keys import Keys
 import re
 import urllib.parse
 import time
+import json
 
 
 class Communicator:
@@ -58,7 +59,7 @@ class Communicator:
         return req
 
     @staticmethod
-    def request(verb, url, headers=None, data=None, params=None, auth=None):
+    def request(verb, url, headers=None, data=None, params=None, auth=None, json=None):
         """
             Centralized place for making calls to the requests library.
             Centralization might come in handy so..
@@ -69,9 +70,10 @@ class Communicator:
         str_to_req = {
             'post': requests.post
             , 'get': requests.get
+            , 'put': requests.put
         }
         req = str_to_req[verb]
-        response = req(url, headers=headers, data=data, params=params, auth=auth)
+        response = req(url, headers=headers, data=data, params=params, auth=auth, json=json)
 
         return response
 ########################################################################################################################
@@ -158,6 +160,29 @@ class CustomerCommunicator(Communicator):
         req = req.json()
         self.access_token = req['access_token']
         self.refresh_token = req['refresh_token']
+
+    def add_to_cart(self, shopping_list: list[dict]):
+        """
+
+        :param shopping_list:  [{'upc': <>, 'quantity': <>}, ... ]
+        """
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded'
+            , 'Authorization': f'Bearer {self.access_token}'
+        }
+        data = {
+            'items': shopping_list
+        }
+        target_url = f'{Communicator.api_base}cart/add'
+        req = Communicator.request('put', target_url, headers=headers, json=data)
+        if req.status_code != 204:
+            print("error adding items to cart")
+            print(req.text)
+            exit()
+        print(req.status_code)
+        print(req.text)
+
+        return True
 ########################################################################################################################
 
 
