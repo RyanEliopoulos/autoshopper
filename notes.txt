@@ -1,3 +1,7 @@
-Using selenium I am able to enter the username/password for my kroger account and consent to my app
-performing things on my behalf.  Will need to figure out how to accept the authorization code included in the redirect
-uri
+1/30/2021
+
+II Cannot remove items from the customer cart with the API. Evaluate availability of each item before ordering??
+    Could just allow substitutions for now and disable them upon first receipt of unacceptable sub.
+
+    Will also need to rely upon Selenium to navigate through order placement once the time comes.  Will put that off
+    to focus on building out the recipe inventory system.
