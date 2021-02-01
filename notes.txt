@@ -1,3 +1,16 @@
+1/31/2021
+II  Came across an API response for product search term "yellow onion" that included a generic yellow onion
+    lacking pricing and other information. All fields (pickup, delivery, etc.) showed as unavailable.
+
+    Also clear that not all items in the grocery stores are available through the API.  There are certainly more
+    than Kroger brand 3lb bags of onions...I can see them using the user interface :(.
+
+    Good news: It was the search term "yellow onion" simply being insufficiently close to the actual product
+                name "Onions - Yellow - Small".  With that string the API gives the produce options by the pound :).
+
+
+
+
 1/30/2021
 
 II Cannot remove items from the customer cart with the API. Evaluate availability of each item before ordering??
