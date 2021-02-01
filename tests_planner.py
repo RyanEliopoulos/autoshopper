@@ -46,8 +46,8 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(self.planner.grocery_order['0001111097975']['quantity'], 3)
 
         # Testing calrose rice
-        self.assertEqual(self.planner.grocery_order['9111']['colloquial_name'], 'calrose rice')
-        self.assertEqual(self.planner.grocery_order['9111']['quantity'], 1)
+        self.assertEqual(self.planner.grocery_order['0001115214409']['colloquial_name'], 'calrose rice')
+        self.assertEqual(self.planner.grocery_order['0001115214409']['quantity'], 1)
 
         # Testing shared item (yellow onion)
         self.assertEqual(self.planner.grocery_order['0000000004665']['colloquial_name'], 'yellow onion')
