@@ -1,0 +1,38 @@
+[
+  {"recipe_name": "bulk burritos",
+     "recipe_items": [ {"colloquial_name": "ground beef",
+                          "product_id": "012345",
+                          "upc": "9876",
+                          "quantity": 3
+                        },
+                        {"colloquial_name": "tortilla stack",
+                          "product_id":  "06575",
+                          "upc":  "93432",
+                          "quantity": 4
+                         },
+                        {"colloquial_name": "yellow onion",
+                          "product_id": "0777",
+                          "upc": "9998",
+                          "quantity": 1
+                         }
+                      ]
+  },
+  {"recipe_name": "fried rice",
+      "recipe_items": [ {"colloquial_name": "soy sauce" ,
+                          "product_id": "0333",
+                          "upc": "9333",
+                          "quantity": 1
+                         },
+                        {"colloquial_name": "calrose rice",
+                          "product_id":  "0111",
+                          "upc": "9111",
+                          "quantity": 1
+                         },
+                        {"colloquial_name": "yellow onion",
+                          "product_id": "0777",
+                          "upc": "9998",
+                          "quantity": 1
+                         }
+                       ]
+   }
+]

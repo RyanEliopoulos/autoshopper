@@ -6,10 +6,9 @@ from selenium.webdriver.common.keys import Keys
 import re
 import urllib.parse
 import time
-import json
 
 
-class Communicator:
+class Communicator:  # Abstract base class
     # App credentials
     client_id: str = os.getenv('kroger_app_client_id')
     client_secret: str = os.getenv('kroger_app_client_secret')
@@ -63,9 +62,7 @@ class Communicator:
         """
             Centralized place for making calls to the requests library.
             Centralization might come in handy so..
-
         """
-
         # Pulling appropriate request method
         str_to_req = {
             'post': requests.post
@@ -163,7 +160,6 @@ class CustomerCommunicator(Communicator):
 
     def add_to_cart(self, shopping_list: list[dict]) -> bool:
         """
-
         :param shopping_list:  [{'upc': <>, 'quantity': <>}, ... ]
         :return bool indicating success/failure
         """
@@ -180,8 +176,6 @@ class CustomerCommunicator(Communicator):
             print("error adding items to cart")
             print(req.text)
             exit()
-        print(req.status_code)
-        print(req.text)
 
         return True
 ########################################################################################################################
