@@ -29,11 +29,11 @@ class PlannerTests(unittest.TestCase):
         recipe = selected_recipes[0]
         tallied_items = self.planner.recipe_tallyitems(recipe)
         # Checking quantities
-        self.assertEqual(tallied_items['93432']['quantity'], 4)
-        self.assertEqual(tallied_items['9876']['quantity'], 3)
+        self.assertEqual(tallied_items['0007373100415']['quantity'], 4)
+        self.assertEqual(tallied_items['0001111097975']['quantity'], 3)
         # Checking names
-        self.assertEqual('ground beef', tallied_items['9876']['colloquial_name'])
-        self.assertEqual('tortilla stack', tallied_items['93432']['colloquial_name'])
+        self.assertEqual('ground beef', tallied_items['0001111097975']['colloquial_name'])
+        self.assertEqual('tortilla stack', tallied_items['0007373100415']['colloquial_name'])
 
     def test_grocery_buildorder(self):
         # staging recipes
@@ -42,16 +42,16 @@ class PlannerTests(unittest.TestCase):
         self.planner.grocery_buildfrom_selected()
 
         # Testing ground beef quantity
-        self.assertEqual(self.planner.grocery_order['9876']['colloquial_name'], 'ground beef')
-        self.assertEqual(self.planner.grocery_order['9876']['quantity'], 3)
+        self.assertEqual(self.planner.grocery_order['0001111097975']['colloquial_name'], 'ground beef')
+        self.assertEqual(self.planner.grocery_order['0001111097975']['quantity'], 3)
 
         # Testing calrose rice
         self.assertEqual(self.planner.grocery_order['9111']['colloquial_name'], 'calrose rice')
         self.assertEqual(self.planner.grocery_order['9111']['quantity'], 1)
 
         # Testing shared item (yellow onion)
-        self.assertEqual(self.planner.grocery_order['9998']['colloquial_name'], 'yellow onion')
-        self.assertEqual(self.planner.grocery_order['9998']['quantity'], 2)
+        self.assertEqual(self.planner.grocery_order['0000000004665']['colloquial_name'], 'yellow onion')
+        self.assertEqual(self.planner.grocery_order['0000000004665']['quantity'], 2)
 
     def test_grocery_subtractfrom(self):
         # Staging recipes
@@ -60,12 +60,12 @@ class PlannerTests(unittest.TestCase):
         self.planner.grocery_buildfrom_selected()
 
         # Testing subtraction (yellow onion, halving)
-        self.planner.grocery_subtractfrom('9998', 1)
-        self.assertEqual(self.planner.grocery_order['9998']['quantity'], 1)
+        self.planner.grocery_subtractfrom('0000000004665', 1)
+        self.assertEqual(self.planner.grocery_order['0000000004665']['quantity'], 1)
 
         # Testing complete removal (yellow onion)
-        self.planner.grocery_subtractfrom('9998', 1)
-        self.assertRaises(KeyError, self.planner.grocery_subtractfrom, '9998', 3)
+        self.planner.grocery_subtractfrom('0000000004665', 1)
+        self.assertRaises(KeyError, self.planner.grocery_subtractfrom, '0000000004665', 3)
 
 
 
