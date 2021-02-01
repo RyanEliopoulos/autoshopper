@@ -57,6 +57,25 @@ class Communicator:  # Abstract base class
         req = req.json()
         return req
 
+    def product_search(self, search_term):
+        url = self.api_base + 'products'
+        headers = {
+            'Accept': 'application/json'
+            , 'Authorization': f'Bearer {self.access_token}'
+        }
+        params = {
+            'filter.term': search_term
+            , 'filter.locationId': self.location_id
+        }
+        req = self.request('get', url=url, headers=headers, params=params)
+
+        if req.status_code != 200:
+            print('Something went wrong with the product search')
+            print(req.status_code)
+            print(req.text)
+        req = req.json()
+        return req
+
     @staticmethod
     def request(verb, url, headers=None, data=None, params=None, auth=None, json=None):
         """
