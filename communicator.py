@@ -18,6 +18,8 @@ class Communicator:  # Abstract base class
     api_base: str = 'https://api.kroger.com/v1/'
     api_token: str = 'connect/oauth2/token'
     api_authorize: str = 'connect/oauth2/authorize'  # "human" consent w/ redirect endpoint
+    # Pagination page (stand in)
+    pagination_index = 1
 
     # Tenney road Fred Meyer
     location_id = '70100460'
@@ -57,7 +59,26 @@ class Communicator:  # Abstract base class
         req = req.json()
         return req
 
-    def product_search(self, search_term):
+    def product_search(self, search_term, direction: str = None):
+        """
+
+        :param search_term:   Must be at least 3 characters long.
+        :param direction: either 'next' or 'previous'. Increments/decrements the pagination index relative to the
+                            value of the previous product_search method call.  Invoking method without a direction
+                            value resets the pagination index to default = 1
+        :return:
+        """
+        if direction == 'next':
+            self.pagination_index += 50
+            if self.pagination_index > 1000:  # Can't exceed 1k or API cries
+                self.pagination_index -= 50
+        elif direction == 'previous':
+            self.pagination_index -= 50
+            if self.pagination_index < 1:  # Can't be below 1 or API cries
+                self.pagination_index = 1
+        elif direction is None:
+            self.pagination_index = 1
+
         url = self.api_base + 'products'
         headers = {
             'Accept': 'application/json'
@@ -66,6 +87,9 @@ class Communicator:  # Abstract base class
         params = {
             'filter.term': search_term
             , 'filter.locationId': self.location_id
+            , 'filter.limit': 50  # Number of items the response may contain
+            , 'filter.start': self.pagination_index  # Result index where the response with begin reading
+            , 'filter.fullfillment': 'csp'  # curbside pickup
         }
         req = self.request('get', url=url, headers=headers, params=params)
 
@@ -92,6 +116,8 @@ class Communicator:  # Abstract base class
         response = req(url, headers=headers, data=data, params=params, auth=auth, json=json)
 
         return response
+
+
 ########################################################################################################################
 
 
@@ -105,6 +131,8 @@ class CustomerCommunicator(Communicator):
         self.access_token = None
         self.refresh_token = None
         self.authorization_code = None
+        # Pagination index
+        self.pagination_index = 1  # Helps product_search track state in case pagination is required
 
     def _get_authcode(self):
 
@@ -197,6 +225,8 @@ class CustomerCommunicator(Communicator):
             exit()
 
         return True
+
+
 ########################################################################################################################
 
 
@@ -204,6 +234,7 @@ class AppCommunicator(Communicator):
 
     def __init__(self):
         self.access_token = None
+        self.pagination_index = 1  # Helps product_search track state in case pagination is required
 
     def get_tokens(self):
         # Staging HTTP request content
