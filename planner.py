@@ -31,7 +31,7 @@ class Planner:
         for item in recipe['recipe_items']:
             upc = item['upc']
             colloq_name = item['colloquial_name']
-            quantity = item['quantity']
+            quantity = float(item['quantity'])
             if upc in items.keys():
                 items[upc]['quantity'] += quantity
             else:
@@ -44,6 +44,8 @@ class Planner:
         """
             Populates self.grocery_order into {<upc>: {"colloquial_name": <>, "quantity": <>}, }
             structure.
+
+            All item quantities are rounded up to the nearest integer value
 
             Resets self.grocery_order
         :return:  None
@@ -64,6 +66,15 @@ class Planner:
                     self.grocery_order[upc] = {'colloquial_name': colloq_name,
                                                'quantity': quantity}
 
+        # Rounding up and casting to int
+        for upc in self.grocery_order.keys():
+            original_quant = self.grocery_order[upc]['quantity']
+            int_quant = int(self.grocery_order[upc]['quantity'])
+            if original_quant != int_quant:  # Value is a float
+                self.grocery_order[upc]['quantity'] = int(1 + original_quant)
+            else:  # Casting to int to eliminate possible floats e.g. 3.0
+                self.grocery_order[upc]['quantity'] = int_quant
+
     def grocery_subtractfrom(self, upc, quantity):
         try:
             self.grocery_order[upc]['quantity'] -= quantity
@@ -72,10 +83,4 @@ class Planner:
         except KeyError as ke:
             print('no such items exists to delete..')
             raise KeyError
-
-
-
-
-
-
 

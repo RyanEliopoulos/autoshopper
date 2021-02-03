@@ -29,7 +29,7 @@ class PlannerTests(unittest.TestCase):
         recipe = selected_recipes[0]
         tallied_items = self.planner.recipe_tallyitems(recipe)
         # Checking quantities
-        self.assertEqual(tallied_items['0007373100415']['quantity'], 4)
+        self.assertEqual(tallied_items['0007373100415']['quantity'], 3.5)
         self.assertEqual(tallied_items['0001111097975']['quantity'], 3)
         # Checking names
         self.assertEqual('ground beef', tallied_items['0001111097975']['colloquial_name'])
@@ -52,6 +52,10 @@ class PlannerTests(unittest.TestCase):
         # Testing shared item (yellow onion)
         self.assertEqual(self.planner.grocery_order['0000000004665']['colloquial_name'], 'yellow onion')
         self.assertEqual(self.planner.grocery_order['0000000004665']['quantity'], 2)
+
+        # Testing rounded item (tortilla stacks)
+        self.assertEqual(self.planner.grocery_order['0007373100415']['colloquial_name'], 'tortilla stack')
+        self.assertEqual(self.planner.grocery_order['0007373100415']['quantity'], 4)
 
     def test_grocery_subtractfrom(self):
         # Staging recipes
