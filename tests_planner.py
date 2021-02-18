@@ -4,6 +4,9 @@ import json
 
 
 class PlannerTests(unittest.TestCase):
+    """
+        Planner relies on the ingredient UPC for testing. Product id is not used
+    """
     def setUp(self) -> None:
         with open('test_recipes.json', 'r') as recipe_file:
             recipes = json.load(recipe_file)
@@ -29,11 +32,11 @@ class PlannerTests(unittest.TestCase):
         recipe = selected_recipes[0]
         tallied_items = self.planner.recipe_tallyitems(recipe)
         # Checking quantities
-        self.assertEqual(tallied_items['0007373100415']['quantity'], 3.5)
+        self.assertEqual(tallied_items['0007373100419']['quantity'], 3.5)
         self.assertEqual(tallied_items['0001111097975']['quantity'], 3)
         # Checking names
         self.assertEqual('ground beef', tallied_items['0001111097975']['colloquial_name'])
-        self.assertEqual('tortilla stack', tallied_items['0007373100415']['colloquial_name'])
+        self.assertEqual('tortilla stack', tallied_items['0007373100419']['colloquial_name'])
 
     def test_grocery_buildorder(self):
         # staging recipes
@@ -54,23 +57,35 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(self.planner.grocery_order['0000000004665']['quantity'], 2)
 
         # Testing rounded item (tortilla stacks)
-        self.assertEqual(self.planner.grocery_order['0007373100415']['colloquial_name'], 'tortilla stack')
-        self.assertEqual(self.planner.grocery_order['0007373100415']['quantity'], 4)
+        self.assertEqual(self.planner.grocery_order['0007373100419']['colloquial_name'], 'tortilla stack')
+        self.assertEqual(self.planner.grocery_order['0007373100419']['quantity'], 4)
 
-    def test_grocery_subtractfrom(self):
+    def test_grocery_modifyquantity(self):
         # Staging recipes
         self.planner.recipes_select(0)
         self.planner.recipes_select(1)
         self.planner.grocery_buildfrom_selected()
 
         # Testing subtraction (yellow onion, halving)
-        self.planner.grocery_subtractfrom('0000000004665', 1)
+        self.planner.grocery_modifyquantity('0000000004665', -1)
         self.assertEqual(self.planner.grocery_order['0000000004665']['quantity'], 1)
 
         # Testing complete removal (yellow onion)
-        self.planner.grocery_subtractfrom('0000000004665', 1)
-        self.assertRaises(KeyError, self.planner.grocery_subtractfrom, '0000000004665', 3)
+        self.planner.grocery_modifyquantity('0000000004665', -1)
+        self.assertRaises(KeyError, self.planner.grocery_modifyquantity, '0000000004665', 3)
 
+        # Testing addition (ground beef)
+        self.planner.grocery_modifyquantity('0001111097975', 1)
+        self.assertEqual(self.planner.grocery_order['0001111097975']['quantity'], 4)
 
+    def test_new_recipe(self):
+        raise NotImplementedError('Need to implement this test')
 
+    def test_newrecipe_additem(self):
+        raise NotImplementedError('Need to implement this test')
 
+    def test_newrcipe_removeitem(self):
+        raise NotImplementedError('Need to implement this test')
+
+    def test_newrecipe_save(self):
+        raise NotImplementedError('Need to implement this test')
