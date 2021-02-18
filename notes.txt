@@ -1,3 +1,54 @@
+2/17/2021
+2U  Think this session we'll build a basic UI for selecting recipes already defined.
+
+    Items need product id as well as UPC - upc is for adding to cart and product id is for item info lookup.
+
+    View and Planner interaction:
+        Recipes: They will communicate back and forth based on the index value of the recipes as found in
+                    planner.recipes.
+
+        grocery_orders: They will communicate using UPC values
+
+
+
+II
+    ANSI escape codes: http://ascii-table.com/ansi-escape-sequences-vt-100.php
+    Good ones in there for clearing the screen
+
+    The colorama module seems to blanket turn on the ANSI escape sequences that otherwise don't work. Cool.
+
+    Writing to the screen buffer with win32console appears to not support ANSI escape sequences, instead interpreting
+    strings literally. Will still be needed to move the cursor around but print() will take care of the text.
+
+
+2/4/2021
+
+II win32console stuff: The console screen buffer size must always equal or exceed the size of the console window.
+                        It seems like the screen buffer is the area characters can be written to.
+
+   Disabling echo, RETURN: Setting the console mode for the std output handle to 0 disables key echo and the
+                            requirement for a newline to unblock the ReadConsole() call. Will want this for
+                            a "less" type emulation.
+
+   '\b' deletes the character in the previous position?
+
+II pywin32 will allow advance CLI manipulations for windows through the win32console library. Will use curses
+   when implementing compatibility with unix-like.
+
+2/2/2021
+
+II Unlike as describe below, the search term "yellow onion" is now properly yielding the "Onions - Yellow - Small"
+    product. Weird.
+
+2U  Need to decide on a mechanism to translate unit measurements across recipes. For example, one recipe calls for
+    .75 (3/4) cup carrots, one calls for 4 carrots, one calls for a pound of carrots. Could be a file with
+    a translation entry for every product.
+
+    An even easier approach is to have all recipes items given in terms of a single unit e.g. .15 pounds of carrots or
+    .4 onions. This could get weird with canned food as they can come in various sizes. Oh well, guess that's what
+    the productId/UPC is for!!
+
+
 1/31/2021
 II  Came across an API response for product search term "yellow onion" that included a generic yellow onion
     lacking pricing and other information. All fields (pickup, delivery, etc.) showed as unavailable.
