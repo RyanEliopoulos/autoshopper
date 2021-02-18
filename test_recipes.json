@@ -1,37 +1,37 @@
 [
   {"recipe_name": "bulk burritos",
      "recipe_items": [ {"colloquial_name": "ground beef",
-                          "product_id": "012345",
+                          "product_id": "0001111097975",
                           "upc": "0001111097975",
-                          "quantity": 3
+                          "quantity": "3"
                         },
                         {"colloquial_name": "tortilla stack",
-                          "product_id":  "06575",
-                          "upc":  "0007373100415",
-                          "quantity": 4
+                          "product_id":  "0007373100419",
+                          "upc":  "0007373100419",
+                          "quantity": "3.5"
                          },
                         {"colloquial_name": "yellow onion",
-                          "product_id": "0777",
+                          "product_id": "0000000004665",
                           "upc": "0000000004665",
-                          "quantity": 1
+                          "quantity": "1"
                          }
                       ]
   },
   {"recipe_name": "fried rice",
       "recipe_items": [ {"colloquial_name": "soy sauce" ,
-                          "product_id": "0333",
+                          "product_id": "0004139000003",
                           "upc": "0004139000003",
-                          "quantity": 1
+                          "quantity": "1"
                          },
                         {"colloquial_name": "calrose rice",
-                          "product_id":  "0111",
+                          "product_id":  "0001115214409",
                           "upc": "0001115214409",
-                          "quantity": 1
+                          "quantity": "1"
                          },
                         {"colloquial_name": "yellow onion",
-                          "product_id": "0777",
+                          "product_id": "0000000004665",
                           "upc": "0000000004665",
-                          "quantity": 1
+                          "quantity": "1"
                          }
                        ]
    }
