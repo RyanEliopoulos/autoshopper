@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 selenium = "*"
 requests = "*"
+colorama = "*"
 
 [dev-packages]
 
