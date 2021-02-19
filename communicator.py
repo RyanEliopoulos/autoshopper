@@ -1,3 +1,14 @@
+"""
+
+    @TODO CustomerCommunicator needs a way to update the access token upon expiry.
+          Might have to override base class implementation in order to handle the error case.  Could also track the
+          expiry time and have each method call evaluate the need to refresh beforehand, removing the need to handle
+          failure.
+
+
+"""
+
+
 import os
 import requests
 from selenium import webdriver
@@ -35,7 +46,7 @@ class Communicator:  # Abstract base class
         """
         raise NotImplementedError('Subclass should implement this')
 
-    def get_productinfo(self, product_id):
+    def get_productinfo(self, product_id: str) -> dict:
         """
             Pulls product info from the API and returns json/dict format of the response for caller to sort out
         :return:
