@@ -1,3 +1,44 @@
+2/18/2021
+
+2U  View design ideas: We are limiting the number of options available on screen at any given time to 5.
+                       These will use the a, s, d, f, g keys for input, in that order, top to bottom.
+                       Use of fewer than that will fill in from the bottom up, starting with g.
+
+                       The instance variable will track a mapping {'[key]': {'coord': <>, 'text': <>}}
+                       used for printing to the screen. Then, local scoping whose context determines which options to
+                       present will maintain a dictionary mapping the keys to an index value. This is because each
+                       menu context will have a list[] of options associated with it. To properly paginate through the
+                       options, given the limit of 5 per screen at a time, and still easily map an input key to an
+                       option, such a mapping is necessary. Thus we can have "global" state information for each option
+                       slot while compartmentalizing the details based on context.
+
+                       This local {<input_key>: <index>} mapping can be provided by an update_option_slot method, called
+                       for each menu context initially and again for each pagination. Thoughts below.
+
+
+# update_option_slots(options: list, left_index: int, right_index: int) -> dict:
+# Local scope tracks the index changing based on pagination input from user.
+# method will update the instance variable self.options based on self.option_slots, a list of the possible option slots,
+# and the options we are iterating through. Local scope will then call self.print_option_slots() to write the updated
+# values
+#
+# Local index variables can inform decision to include pagination info on the guide string i.e. left_index == 0 means
+# no left pagination, right_index >= len(options) means no more right pagination option.
+#
+# perhaps the method also returns a dictionary of possible choices e.g. a menu with only one option will provide
+# this dictionary: {'g': <index>}. The local context can then check user input against this dict for validity.
+
+
+
+2U
+    Planner <-> view communiation: So I'm relearning that Planner provides a dictionary from the get recipes method.
+        This is great because the view needs to know if something is selected or not.
+
+    I'm beginning to really understand the value of functions providing a success/fail int upon returning.
+
+
+    Tracking color for items is turning out to be too much of an afterthought...
+
 2/17/2021
 2U  Think this session we'll build a basic UI for selecting recipes already defined.
 
@@ -11,6 +52,9 @@
 
 
 
+    Thoughts on the way I do commits: Probably doesn't always make sense to do commits an a per-file basis as modifications
+                                        in one may be meaningless or breaking without the modifications in another.
+                                        This complicates rolling back breaking changes. Soooo yes.
 II
     ANSI escape codes: http://ascii-table.com/ansi-escape-sequences-vt-100.php
     Good ones in there for clearing the screen
