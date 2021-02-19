@@ -1,3 +1,5 @@
+import controller
 
 if __name__ == "__main__":
-    pass
+    controller = controller.Controller()
+    controller.mainloop()

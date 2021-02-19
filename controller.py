@@ -31,6 +31,8 @@ class Controller:
         # Providing callback handles to self.view
         self.set_callbacks()
 
+        # FOR DEBUGGINGG
+        self.view._mainmenu()
         # self.view.mainloop()
 
     def read_recipes(self):
@@ -45,11 +47,11 @@ class Controller:
             Provides callback functions to the view for use in the "event loop"
 
         """
-        self.view.cb_recipes_get = self.get_recipes
-        self.view.cb_recipe_select = self.select_recipe
-        self.view.cb_recipe_deselect = self.deselect_recipe
-        self.view.cb_grocery_buildlist = self.build_grocery_list
-        self.view.cb_grocery_modifylist = self.modify_grocery_list
+        self.view.callbacks['cb_recipes_get'] = self.get_recipes
+        self.view.callbacks['cb_recipe_select'] = self.select_recipe
+        self.view.callbacks['cb_recipe_deselect'] = self.deselect_recipe
+        self.view.callbacks['cb_grocery_buidlist'] = self.build_grocery_list
+        self.view.callbacks['cb_grocery_modifylist'] = self.modify_grocery_list
 
     def get_recipes(self):
         return self.planner.recipes
@@ -107,8 +109,8 @@ class Controller:
 
 
 
-
-
+    def mainloop(self):
+        self.view._mainmenu()
 
 
 

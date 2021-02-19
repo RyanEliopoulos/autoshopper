@@ -47,7 +47,6 @@ class ControllerTests(unittest.TestCase):
         # Asserting nothing more is present in the list
         self.assertTrue(len(grocery_list) == 3)
 
-
         # Checking values returned by product_info API call
         for upc in grocery_list.keys():
             # Checking price value has updated from default
