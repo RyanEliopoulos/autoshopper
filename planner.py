@@ -7,7 +7,7 @@ class Planner:
         for recipe in self.recipes:
             recipe['selected'] = 0
 
-        self.new_recipe = None  # Temp var for when user is creating a new recipe
+        self.new_recipe: dict = None  # Temp var for when user is creating a new recipe
         # Grocery order - tally of ingredients/items for ordering
         self.grocery_order = dict()
         """
@@ -52,6 +52,13 @@ class Planner:
         self.new_recipe['recipe_items'].append(item)
 
     def recipe_newrecipe_removeitem(self, colloquial_name):
+        """
+            This should be changed to modifyquantity. If the user wishes to remove the item from the recipe
+            they can reduce the quantity of the item to 0.
+
+        :param colloquial_name:
+        :return:
+        """
         for index, item in enumerate(self.new_recipe['recipe_items']):
             if item['colloquial_name'] == colloquial_name:
                 self.new_recipe['recipe_items'].pop(index)
