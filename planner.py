@@ -39,34 +39,47 @@ class Planner:
             if recipe['recipe_name'] == recipe_name:
                 return False
         self.new_recipe = {'recipe_name': recipe_name
-                           , 'recipe_items': []}
+                           , 'recipe_items': []
+                           , 'selected':  0}
         return True
 
-    def recipe_newrecipe_additem(self, item: dict):
+    def recipe_newrecipe_additem(self, item: dict) -> bool:
         """
+            Requires the name given by the user to be unique. Return bool reflects this.
+
         :param item: {'colloquial_name': str(<name>)
                       , 'product_id': str(<id>)
                       , 'upc': str(<upc>)
                       , 'quantity': str(<quantity>) of a float
         """
+        # I guess we are going to require colloquial_name to be unique so that modifyitem works as expected all the time
+        for existing_recipe_item in self.new_recipe['recipe_items']:
+            if existing_recipe_item['colloquial_name'] == item['colloquial_name']:
+                return False
+
+        # Name not already in use
         self.new_recipe['recipe_items'].append(item)
+        return True
 
-    def recipe_newrecipe_removeitem(self, colloquial_name):
+    def recipe_newrecipe_modifyitem(self, colloquial_name: str, quantity: float):
         """
-            This should be changed to modifyquantity. If the user wishes to remove the item from the recipe
-            they can reduce the quantity of the item to 0.
+            Changes the recipe item corresponding to the given colloquial_name to the given quantity.
+            If the quantity is 0 or less the item is removed from the recipe.
 
-        :param colloquial_name:
-        :return:
         """
         for index, item in enumerate(self.new_recipe['recipe_items']):
             if item['colloquial_name'] == colloquial_name:
-                self.new_recipe['recipe_items'].pop(index)
+                item['quantity'] = quantity
+                if item['quantity'] <= 0:
+                    self.new_recipe['recipe_items'].pop(index)
 
     def recipe_newrecipe_save(self):
         """
-            Saves the in-progress recipe to the recipe list
+            Saves the in-progress recipe to the in-memory recipe list.
+
+            Controller should handle writing the new value to disk and assessing success.
         """
+
         self.recipes.append(self.new_recipe)
         self.new_recipe = None
 

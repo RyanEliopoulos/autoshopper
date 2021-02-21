@@ -1,3 +1,21 @@
+2/20/2021
+
+    Controller now sorts the recipe lists alphabetically.
+
+    Communicator product_search() method now takes the pagination value as a parametero
+
+    Controller now has init parameters to assist with testing
+
+    Controller wraps communicator.product_search and processes the json data to get only what the view wants
+
+    Controller saves recipes to disk and checks for success.
+
+    The view can now build new recipes, querying the kroger API to populate the recipe with the
+    API values associated with the ingredients.
+
+    view now saves the default input buffer value and uses it to undo the disabling of the input echo.
+    Otherwise the input("") function wasn't working.
+
 2/18/2021
 
 2U  View design ideas: We are limiting the number of options available on screen at any given time to 5.

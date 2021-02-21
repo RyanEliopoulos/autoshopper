@@ -7,13 +7,14 @@ class PlannerTests(unittest.TestCase):
     """
         Planner relies on the ingredient UPC for testing. Product id is not used
     """
+
     def setUp(self) -> None:
         with open('test_recipes.json', 'r') as recipe_file:
             recipes = json.load(recipe_file)
         self.planner = Planner(recipes)
 
     def test_init(self):
-        self.assertEqual(len(self.planner.recipes), 2)
+        self.assertEqual(len(self.planner.recipes), 6)
 
     def test_recipe_select(self):
         self.planner.recipes_select(1)
@@ -79,13 +80,86 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(self.planner.grocery_order['0001111097975']['quantity'], 4)
 
     def test_new_recipe(self):
-        raise NotImplementedError('Need to implement this test')
+        # Testing a new recipe whose name is unused.
+        recipe_name = "available name"
+        ret = self.planner.recipe_new_recipe(recipe_name)
+        self.assertTrue(ret)
+        # Ensuring the appropriate data structure was created
+        new_recipe_struct = {
+            'recipe_name': recipe_name
+            , 'recipe_items': []
+            , 'selected': 0
+        }
+        self.assertEqual(new_recipe_struct, self.planner.new_recipe)
+
+        # Testing a name already used
+        recipe_name = 'bulk burritos'
+        ret = self.planner.recipe_new_recipe(recipe_name)
+        self.assertFalse(ret)
 
     def test_newrecipe_additem(self):
-        raise NotImplementedError('Need to implement this test')
+        # Building new recipe
+        recipe_name = "bake potatoes"
+        ret = self.planner.recipe_new_recipe(recipe_name)
+        self.assertTrue(ret)
 
-    def test_newrcipe_removeitem(self):
-        raise NotImplementedError('Need to implement this test')
+        # Adding item not already present
+        new_item = {"colloquial_name": "yellow onion",
+                    "product_id": "0000000004665",
+                    "upc": "0000000004665",
+                    "quantity": "1"}
+        ret = self.planner.recipe_newrecipe_additem(new_item)
+        self.assertTrue(ret)
+        # Verifying presence of new recipe item
+        self.assertEqual(new_item, self.planner.new_recipe['recipe_items'][0])
+
+        # Attempting to add duplicate colloquial_name
+        duplicate_item = {"colloquial_name": "yellow onion",
+                          "product_id": "0000000004665",
+                          "upc": "0000000004665",
+                          "quantity": "1"}
+        ret = self.planner.recipe_newrecipe_additem(duplicate_item)
+        self.assertFalse(ret)
+
+    def test_recipe_newrecipe_modifyitem(self):
+        # Building new recipe
+        recipe_name = "shawarma"
+        ret = self.planner.recipe_new_recipe(recipe_name)
+        self.assertTrue(ret)
+
+        # Adding item not already present
+        new_item = {"colloquial_name": "yellow onion",
+                    "product_id": "0000000004665",
+                    "upc": "0000000004665",
+                    "quantity": "1"}
+        ret = self.planner.recipe_newrecipe_additem(new_item)
+        self.assertTrue(ret)
+
+        # Checking positive quantity update
+        self.planner.recipe_newrecipe_modifyitem('yellow onion', 4)
+        updated_quantity = self.planner.new_recipe['recipe_items'][0]['quantity']
+        self.assertEqual(4, updated_quantity)
+
+        # Checking non-positive quantity update (deletion)
+        self.planner.recipe_newrecipe_modifyitem('yellow onion', 0)
+        recipe_item_count = len(self.planner.new_recipe['recipe_items'])
+        self.assertEqual(0, recipe_item_count)
 
     def test_newrecipe_save(self):
-        raise NotImplementedError('Need to implement this test')
+        # Building new recipe
+        recipe_name = "onion rings"
+        ret = self.planner.recipe_new_recipe(recipe_name)
+        self.assertTrue(ret)
+        pre_count = len(self.planner.recipes)
+
+        # Adding item not already present
+        new_item = {"colloquial_name": "yellow onion",
+                    "product_id": "0000000004665",
+                    "upc": "0000000004665",
+                    "quantity": "1"}
+        ret = self.planner.recipe_newrecipe_additem(new_item)
+        self.assertTrue(ret)
+        self.planner.recipe_newrecipe_save()
+        post_count = len(self.planner.recipes)
+        # Checking change in recipe count
+        self.assertEqual(1 + pre_count, post_count)

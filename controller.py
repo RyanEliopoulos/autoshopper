@@ -1,9 +1,4 @@
 """
-    @TODO: Need file-writing method
-            New recipes will require updating the recipes.json file. Should create a swap and then verify
-            the new file contains everything the old one did. Should probably create a FileIO class.
-
-    @TODO: Move interface functionality to View.py
 """
 
 
@@ -14,31 +9,38 @@ import view
 # Other modules
 import json
 import time
+import os
+import copy
 
 
 class Controller:
 
-    def __init__(self):
+    def __init__(self, disableview=False, get_tokens=True):
         # Instantiating Planner (model)
         self.recipes: list = self.read_recipes()
         self.planner = planner.Planner(self.recipes)
         # Instantiating API interfaces
         self.customer_communicator = communicator.CustomerCommunicator()
         self.app_communicator = communicator.AppCommunicator()
-        # Instantiating the view
-        self.view = view.View()
 
-        # Providing callback handles to self.view
-        self.set_callbacks()
+        if get_tokens:
+            print("Please wait while we retrieve the tokens..")
+            self.customer_communicator.get_tokens()
+            print("Tokens received")
 
-        # FOR DEBUGGINGG
-        self.view._mainmenu()
-        # self.view.mainloop()
+        if not disableview:  # To facilitate testing
+            # Instantiating the view
+            self.view = view.View()
+
+            # Providing callback handles to self.view
+            self.set_callbacks()
+            self.mainloop()
 
     def read_recipes(self):
         recipes: list[dict]
         with open('test_recipes.json', 'r') as recipe_file:
             recipes = json.load(recipe_file)
+            recipes.sort(key=lambda recipe: recipe['recipe_name'])
 
         return recipes
 
@@ -47,11 +49,20 @@ class Controller:
             Provides callback functions to the view for use in the "event loop"
 
         """
+        # Recipe Callbacks
         self.view.callbacks['cb_recipes_get'] = self.get_recipes
         self.view.callbacks['cb_recipe_select'] = self.select_recipe
         self.view.callbacks['cb_recipe_deselect'] = self.deselect_recipe
+        self.view.callbacks['cb_recipe_newrecipe'] = self.recipe_newrecipe
+        self.view.callbacks['cb_recipe_newrecipe_additem'] = self.recipe_newrecipe_additem
+        self.view.callbacks['cb_recipe_newrecipe_modifyitem'] = self.recipe_newrecipe_modifyitem
+        self.view.callbacks['cb_recipe_newrecipe_save'] = self.recipe_newrecipe_save
+
+        # Grocery list callbacks
         self.view.callbacks['cb_grocery_buidlist'] = self.build_grocery_list
         self.view.callbacks['cb_grocery_modifylist'] = self.modify_grocery_list
+
+        self.view.callbacks['cb_product_search'] = self.product_search
 
     def get_recipes(self):
         return self.planner.recipes
@@ -69,6 +80,75 @@ class Controller:
         :param recipe_index: index value of the recipe as found in Planner.recipes
         """
         self.planner.recipes_deselect(recipe_index)
+
+    def recipe_newrecipe(self, recipe_name: str) -> bool:
+        return self.planner.recipe_new_recipe(recipe_name)
+
+    def product_search(self, search_string: str, page_size: int, direction: str = "") -> list[dict]:
+        """
+            Caller must make sure the search_string is at least 3 characters in length.
+            That is the requirement of the kroger API
+
+            "direction" instructs the communicator object to "paginate" the results of the API call.
+            It remembers the previous position in the results page.
+
+            We will format the information for the view.
+        """
+        assert(len(search_string) >= 3)
+        req_results = self.customer_communicator.product_search(search_string, page_size, direction)
+        search_results = req_results['data']
+
+        desired_results = []
+        for result in search_results:
+            try:
+                product_dict = dict()
+                product_dict['description'] = result['description']
+                product_dict['product_id'] = result['productId']
+                product_dict['size'] = result['items'][0]['size']
+                product_dict['price'] = result['items'][0]['price']
+                product_dict['upc'] = result['upc']
+                desired_results.append(product_dict)
+            except KeyError:
+                continue
+
+        return desired_results
+
+    def recipe_newrecipe_additem(self, item: dict) -> bool:
+        return self.planner.recipe_newrecipe_additem(item)
+
+    def recipe_newrecipe_modifyitem(self, colloquial_name: str, quantity: float):
+        self.planner.recipe_newrecipe_modifyitem(colloquial_name, quantity)
+
+    def recipe_newrecipe_save(self) -> bool:
+        """
+            Controller here attempts to save the recipe to disk after instructing Planner to comingle the new recipe
+            with the established recipes.
+        :return: Indicate success of Controller to write the new recipe to disk and verify the contents of the recipe
+        file
+
+        """
+        # Preparing for disk write
+        self.planner.recipe_newrecipe_save()
+        recipe_list = copy.deepcopy(self.planner.recipes)
+
+        # Need to remove the "selected" field
+        for recipe in recipe_list:
+            del(recipe['selected'])
+
+        # Writing to disk
+        with open("updated_recipes.json", "w+") as updated_recipe_file:
+            json.dump(recipe_list, updated_recipe_file, indent=4)
+
+        # Reading back info to check for completeness
+        with open("updated_recipes.json", "r") as read_file:
+            read_recipes = json.load(read_file)
+            # informing caller of failure should it be so
+            if read_recipes != recipe_list:
+                return False
+
+        # All recipes written to disk. Moving tmp file to overwrite perennial
+        os.replace("updated_recipes.json", "recipes.json")
+        return True
 
     def build_grocery_list(self) -> dict:
         """
@@ -107,134 +187,8 @@ class Controller:
         """
         return self.planner.grocery_modifyquantity(upc, quantity)
 
-
-
     def mainloop(self):
-        self.view._mainmenu()
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # def print_recipes(self, recipes):
-    #     for recipe_index, recipe in enumerate(recipes):
-    #         recipe_name = recipe['recipe_name']
-    #         print(f'[{recipe_index}] {recipe_name}')
-    #
-    # def print_menu(self):
-    #     print('[0]: Review recipes')
-    #     print('[1]: Review selected recipes')
-    #     print('[2]: Review shopping list')
-    #     print('[3]: Build shopping list from selected recipes')
-    #     print('[4]: Select recipe')
-    #     print('[5]: Deselect recipe')
-    #     print('[6]: Delete from shopping list')
-    #     print('[7]: Confirm order')
-    #
-    # def get_input(self, message):
-    #     selection = input(message)
-    #     while True:
-    #         try:
-    #             int(selection)
-    #             return selection
-    #         except ValueError as ve:
-    #             print('Invalid option..try again\n')
-    #
-    # def mainloop(self):
-    #     while True:
-    #         self.print_menu()
-    #         selection = self.get_input('')
-    #         # Review recipes
-    #         if selection == '0':
-    #             recipes = self.planner.recipes
-    #             self.print_recipes(recipes)
-    #             input('enter any key to continue...')
-    #         # review selected recipes
-    #         elif selection == '1':
-    #             selected_recipes = self.planner.recipes_get_selected()
-    #             self.print_recipes(selected_recipes)
-    #             input('enter any key to continue...')
-    #         # review shopping list
-    #         elif selection == '2':
-    #             shopping_order = self.planner.grocery_order
-    #             for upc in shopping_order:
-    #                 product = shopping_order[upc]['colloquial_name']
-    #                 quantity = shopping_order[upc]['quantity']
-    #                 print(f'[{upc}]: {product}, {quantity}')
-    #             input('Hit any key to continue...')
-    #         # build shopping list from selected recipes
-    #         elif selection == '3':
-    #             self.planner.grocery_buildfrom_selected()
-    #             print('built grocery list from selected recipes')
-    #         # select recipe
-    #         elif selection == '4':
-    #             recipes = self.planner.recipes
-    #             self.print_recipes(recipes)
-    #             selection = self.get_input('select a recipe [index]')
-    #             try:
-    #                 self.planner.recipes_select(int(selection))
-    #                 print('Recipe added')
-    #             except KeyError as ke:
-    #                 print('Invalid selection...press any key to continue')
-    #         # delete recipe
-    #         elif selection == '5':
-    #             # printing selected recipes
-    #             selected_recipes = self.planner.recipes_get_selected()
-    #             self.print_recipes(int(selected_recipes))
-    #             # gathering human input
-    #             selection = self.get_input('Make your selection:')
-    #             try:
-    #                 self.planner.recipes_deselect(int(selection))
-    #                 print('Deselected the recipe')
-    #             except KeyError as ke:
-    #                 input('Invalid selection...enter any key to continue')
-    #         # delete from shopping list
-    #         elif selection == '6':
-    #             shopping_order = self.planner.grocery_order
-    #             for upc in shopping_order:
-    #                 product = shopping_order[upc]['colloquial_name']
-    #                 quantity = shopping_order[upc]['quantity']
-    #                 print(f'[{upc}]: {product}, {quantity}')
-    #
-    #             target_upc = self.get_input('Enter UPC of target product')
-    #             target_quantity = self.get_input('What quantity are you removing? Values are cast to int')
-    #
-    #             try:
-    #                 self.planner.grocery_subtractfrom(target_upc, int(target_quantity))
-    #                 print('grocery list updated')
-    #             except KeyError as ke:
-    #                 input('Invalid upc...enter any key to continue')
-    #         # Confirm and execute order
-    #         elif selection == '7':
-    #             self.execute_order()
-    #
-    # def execute_order(self):
-    #     # Formatting order for API consumption
-    #     grocery_order = self.planner.grocery_order
-    #     cart_formatted = []
-    #     for upc in grocery_order.keys():
-    #
-    #         new_dict = {'upc': upc
-    #                     , 'quantity': grocery_order[upc]['quantity']}
-    #         cart_formatted.append(new_dict)
-    #
-    #     print('getting access token')
-    #     self.customer_communicator.get_tokens()
-    #     print('Adding items to cart')
-    #     self.customer_communicator.add_to_cart(cart_formatted)
-    #     print('Added to cart')
-
-
-
-
+        self.view.mainloop()
 
 
 

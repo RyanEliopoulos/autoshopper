@@ -1,10 +1,11 @@
 import unittest
 import controller
+import json
 
 
 class ControllerTests(unittest.TestCase):
     def setUp(self):
-        self.xo = controller.Controller()
+        self.xo = controller.Controller(disableview=True)
 
     def test_read_recipes(self):
         # Testing recipe count
@@ -56,3 +57,36 @@ class ControllerTests(unittest.TestCase):
             size = grocery_list[upc]['size']
             self.assertTrue(size != '?')
 
+    def test_newrecipe_save(self):
+        """
+            This test is meant to evaluate the controller's actions in updating the recipe.json file
+            with the new recipe.
+        """
+
+        # Building the new recipe
+        print(self.xo.planner.recipes)
+        ret = self.xo.recipe_newrecipe("sushi")
+        self.assertTrue(ret)
+
+        new_item = {"colloquial_name": "yellow onion",
+                    "product_id": "0000000004665",
+                    "upc": "0000000004665",
+                    "quantity": "1"}
+        self.xo.recipe_newrecipe_additem(new_item)
+
+        # Attempting write to disk
+        ret = self.xo.recipe_newrecipe_save()
+        self.assertTrue(ret)
+
+        # Verifying contents of the recipes.json file reflect the new recipe
+        with open("recipes.json", 'r') as updated_file:
+            disk_recipes = json.load(updated_file)
+            ram_recipes = self.xo.planner.recipes
+            print(ram_recipes)
+            for recipe in ram_recipes:
+                del(recipe['selected'])
+            # Sorting alphabetically to allow for list comparison
+            disk_recipes.sort(key=lambda recipe: recipe['recipe_name'])
+            ram_recipes.sort(key=lambda recipe: recipe['recipe_name'])
+
+            self.assertEqual(disk_recipes, ram_recipes)

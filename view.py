@@ -22,6 +22,7 @@ class View:
         # Grabbing console info
         self.screenbuf_output = self._screen_buffer('output')
         self.screenbuf_input = self._screen_buffer('input')
+        self.screenbuf_input_default = self.screenbuf_input.GetConsoleMode()
 
         # Establishing origin which all drawing will be relative to
         self.cursor_anchor = self._cursor_anchor()
@@ -34,6 +35,8 @@ class View:
 
         # Disabling input echo
         self.input_mirror_disable()
+        # Making cursor invisible
+        self.screenbuf_output.SetConsoleCursorInfo(100, False)
 
         # Enabling ANSI escape sequences
         colorinit()
@@ -42,6 +45,14 @@ class View:
         self.callbacks = {  # controller populates with functions
             'cb_recipes_get': None
             , 'cb_recipe_select': None
+            , 'cb_recipe_deselect': None
+            , 'cb_recipe_newrecipe': None
+            , 'cb_recipe_newrecipe_additem': None
+            , 'cb_recipe_newrecipe_modifyitem': None
+            , 'cb_recipe_newrecipe_save': None
+
+            , 'cb_product_search': None
+
             , 'cb_grocery_buildlist': None
             , ' cb_grocery_moodifylist': None
         }
@@ -52,7 +63,6 @@ class View:
             , 'gray': '\033[39m'
             , 'clearline': '\033[2K'
         }
-
 
     def _screen_buffer(self, option: str):
         """
@@ -105,8 +115,8 @@ class View:
             Toggle mode of the console echo. Based on the win32 API requirements
             https://docs.microsoft.com/en-us/windows/console/setconsolemode
         """
-        val = win32console.ENABLE_ECHO_INPUT + win32console.ENABLE_LINE_INPUT
-        self.screenbuf_input.SetConsoleMode(val)
+        #val = win32console.ENABLE_ECHO_INPUT + win32console.ENABLE_LINE_INPUT
+        self.screenbuf_input.SetConsoleMode(self.screenbuf_input_default)
 
     def input_mirror_disable(self):
         """
@@ -172,7 +182,10 @@ class View:
 
     def _mainmenu(self):
         # Building context menu
-        options = ['Select Recipes', 'Build Grocery List', 'Place Order']
+        options = ['Select Recipes',
+                   'Build Recipe',
+                   'Build Grocery List',
+                   'Place Order']
         # Reversing because the "first" option is the one nearest the bottom
         # and I want Select Recipes at the top
         options.reverse()
@@ -194,7 +207,8 @@ class View:
         actions = {
             'g': self._place_order,
             'f': self._grocery_buildlist,
-            'd': self._recipes_select
+            'd': self._menu_buildrecipe,
+            's': self._recipes_select
         }
         # Beginning input eval loop
         while True:
@@ -210,10 +224,157 @@ class View:
                 self.guidestring = guidestring
                 self.print_screen_context()
 
-    def _place_order(self):
-        pass
+    def _menu_buildrecipe(self):
+        # Clearing screen
+        self._update_option_slots([], 0, 0)
+        self.guidestring = "Enter the name of the recipe: "
+        self.print_screen_context()
+
+        # Receiving recipe name
+        self.input_mirror_enable()
+        recipe_name = input("")
+
+        # Checking valididty
+        if not self.callbacks['cb_recipe_newrecipe'](recipe_name):
+            self.guidestring = "That is an invalid name. Press (almost) any key to continue."
+            self.print_screen_context()
+            input("")
+            return
+
+        # Building menu options
+        options = ['Add ingredient', 'Modify Ingredient', 'Save Recipe']
+        options.reverse()
+        left_index = 0
+        right_index = self.menu_size
+
+        # Beginning menu loop
+        user_input: str = ""
+        while user_input != 'b':
+            # Printing screen
+            self.screenbuf_input.FlushConsoleInputBuffer()
+            self.guidestring = f'Building "{recipe_name}".  [b] for back'
+            self._update_option_slots(options, left_index, right_index)
+            self.input_mirror_disable()
+            self.print_screen_context()
+
+            # Reading input
+            user_input = self._input_read()
+            if user_input == 'g':
+                self._recipe_newrecipe_save()
+                return
+            elif user_input == 'f':
+                raise NotImplementedErrors("")
+                self.callbacks['cb_recipe_newrecipe_modifyitem']
+            elif user_input == 'd':
+                self._menu_buildrecipe_additem()
+
+    def _menu_buildrecipe_additem(self):
+        """
+            Asks user for a search term that is then used to search the API
+            The menu context then populates with the values
+        """
+        # Querying user for ingredient name
+        self.input_mirror_enable()
+        self.guidestring = "What is the name of the ingredient?: "
+        self._update_option_slots([], 0, 0)
+        self.print_screen_context()
+        colloquial_name = input("")
+
+        # Product searching begins
+        while True:
+            # Asking for API search term
+            self.input_mirror_enable()
+            self.guidestring = "Enter a search term to submit to the server. Must be at least 3 characters: "
+            self._update_option_slots([], 0, 0)
+            self.print_screen_context()
+            self.screenbuf_input.FlushConsoleInputBuffer()
+            search_string = input("")
+
+            # Checking term length
+            if len(search_string) < 3:
+                continue
+
+            result_list = self.callbacks['cb_product_search'](search_string, self.menu_size)
+
+            # Beginning search result pagination loop
+            user_input: str = ""
+            while user_input != 'r':
+                # Building 'text' strings from given information
+                presentable_strings = [self._build_cost_string(result) for result in result_list]
+
+                # Building Menu
+                self.input_mirror_disable()
+                option_map = self._update_option_slots(presentable_strings, 0, self.menu_size)
+                self.guidestring = "[r] retry, [b] return, [j] and [k] to try paginating"
+                self.print_screen_context()
+                self.screenbuf_input.FlushConsoleInputBuffer()
+
+                # Evaluating input
+                user_input = self._input_read()
+                if user_input == 'k':
+                    result_list = self.callbacks['cb_product_search'](search_string, self.menu_size, 'next')
+                elif user_input == 'j':
+                    result_list = self.callbacks['cb_product_search'](search_string, self.menu_size, 'previous')
+                elif user_input == 'b':
+                    return
+                elif user_input in option_map:
+                    # Select. Now need to get a quantity
+                    self._update_option_slots([], 0, 0)  # clearing screen
+                    selection = result_list[option_map[user_input]]
+                    description = selection['description']
+                    self.input_mirror_enable()
+                    self.guidestring = f'How many {description}?: '
+                    self.screenbuf_input.FlushConsoleInputBuffer()
+                    self.print_screen_context()
+                    quantity = input("")
+                    try:
+                        float(quantity)
+                        # Adding item to planner and return to the previous menu
+                        new_item = {
+                            'colloquial_name': colloquial_name
+                            , 'product_id': selection['product_id']
+                            , 'upc': selection['upc']
+                            , 'quantity': quantity
+                        }
+                        self.callbacks['cb_recipe_newrecipe_additem'](new_item)
+                        return
+                    except ValueError:
+                        continue
+
+    def _build_cost_string(self, product_dict: dict) -> str:
+        """
+            accepts: {
+                'description': <>
+                , 'product_id': <>
+                , 'size': <>
+                , 'price': <>
+                , 'upc': <>
+            }
+            and returns a single string with description + size + price formatted as specified in this method.
+        """
+        description = product_dict['description'][:50]
+        size = product_dict['size']
+        price = product_dict['price']
+
+        return f"{description} @@ {price} PER {size}"
+
+    def _recipe_newrecipe_save(self):
+        if self.callbacks['cb_recipe_newrecipe_save']():
+            self._update_option_slots([], 0, 0)
+            self.guidestring = "Successfully saved. Press enter to continue"
+            self.print_screen_context()
+        else:
+            # Error occurred
+            self._update_option_slots([], 0, 0)
+            self.guidestring = "Error occurred writing new recipe to disk. Press enter to continue"
+            self.print_screen_context()
+        self.input_mirror_enable()
+        input("")
 
     def _grocery_buildlist(self):
+        pass
+
+    def _place_order(self):
         pass
 
     def _recipes_select(self):
@@ -247,6 +408,8 @@ class View:
         while user_input != 'b':
             self.screenbuf_input.FlushConsoleInputBuffer()  # Flushing input buffer just to be safe
             user_input = self._input_read()
+            guide_string = "[key] to make (de)selection, [b] to go back"
+            self.guidestring = guide_string
             if user_input in slot_map:  # A (de)selection was made
                 # Determining if action is selecting or deselecting
                 recipe_index = slot_map[user_input]
@@ -254,11 +417,11 @@ class View:
                 if target_recipe['selected']:  # Deselecting
                     target_recipe['selected'] = 0
                     self.print_applycolor(user_input, 'gray')
-                    #self.callbacks['cb_recipe_deselect'](recipe_index)
+                    self.callbacks['cb_recipe_deselect'](recipe_index)
                 else:  # Selecting
                     target_recipe['selected'] = 1
                     self.print_applycolor(user_input, 'green')
-                    #self.callbacks['cb_recipe_select'](recipe_index)
+                    self.callbacks['cb_recipe_select'](recipe_index)
             elif self._paged(  # user pressed k
                         recipe_names,
                         left_index,
@@ -269,14 +432,17 @@ class View:
                 right_index += self.menu_size
                 left_index += self.menu_size
                 slot_map = self._update_option_slots(recipe_names, left_index, right_index)
+                self.print_screen_context()
                 update_selected()
             elif self._paged(recipe_names,  # user pressed j
                              left_index,
                              right_index,
                              "left",
                              user_input):
-                right_index -= self.menu_size
                 left_index -= self.menu_size
+                right_index -= self.menu_size
+                slot_map = self._update_option_slots(recipe_names, left_index, right_index)
+                self.print_screen_context()
                 update_selected()
 
     def _paged(self

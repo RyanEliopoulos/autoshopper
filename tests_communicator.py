@@ -67,23 +67,24 @@ class CustomerCommunicatorTests(unittest.TestCase):
 
     def test_productsearch_pagination(self):
         search_term = "milk"  # must be lower case. Product descriptions are converted to lower.
+        page_size = 50
         # Prepping test
         cust_comm = CustomerCommunicator()
         cust_comm.get_tokens()
         self.assertIsInstance(cust_comm.access_token, str)
         # Calling API
-        results = cust_comm.product_search(search_term)
+        results = cust_comm.product_search(search_term, page_size=50)
         # Evaluating "meta" field returned from API call
         pagination_start = results['meta']['pagination']['start']
         self.assertEqual(pagination_start, 1)
 
         # Testing pagination - next
-        next_results = cust_comm.product_search(search_term, direction='next')
+        next_results = cust_comm.product_search(search_term, page_size=50, direction='next')
         new_pagination_start = next_results['meta']['pagination']['start']
         self.assertEqual(new_pagination_start, 51)
 
         # Testing pagination - previous
-        next_results = cust_comm.product_search(search_term, direction='previous')
+        next_results = cust_comm.product_search(search_term, page_size=50, direction='previous')
         new_pagination_start = next_results['meta']['pagination']['start']
         self.assertEqual(new_pagination_start, 1)
 

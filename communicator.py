@@ -70,8 +70,9 @@ class Communicator:  # Abstract base class
         req = req.json()
         return req
 
-    def product_search(self, search_term, direction: str = None):
+    def product_search(self, search_term, page_size: int = 50, direction: str = None):
         """
+            Important to note this method currently has the fulfillment method hardcoded to curbside pickup
 
         :param search_term:   Must be at least 3 characters long.
         :param direction: either 'next' or 'previous'. Increments/decrements the pagination index relative to the
@@ -80,11 +81,11 @@ class Communicator:  # Abstract base class
         :return:
         """
         if direction == 'next':
-            self.pagination_index += 50
+            self.pagination_index += page_size
             if self.pagination_index > 1000:  # Can't exceed 1k or API cries
-                self.pagination_index -= 50
+                self.pagination_index -= page_size
         elif direction == 'previous':
-            self.pagination_index -= 50
+            self.pagination_index -= page_size
             if self.pagination_index < 1:  # Can't be below 1 or API cries
                 self.pagination_index = 1
         elif direction is None:
@@ -98,7 +99,7 @@ class Communicator:  # Abstract base class
         params = {
             'filter.term': search_term
             , 'filter.locationId': self.location_id
-            , 'filter.limit': 50  # Number of items the response may contain
+            , 'filter.limit': page_size  # Number of items the response may contain
             , 'filter.start': self.pagination_index  # Result index where the response with begin reading
             , 'filter.fullfillment': 'csp'  # curbside pickup
         }
@@ -194,7 +195,7 @@ class CustomerCommunicator(Communicator):
 
         self.authorization_code = authorization_code
 
-    def get_tokens(self):
+    def get_tokens(self, refresh=False):
         self._get_authcode()
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
