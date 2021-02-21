@@ -236,7 +236,7 @@ class View:
 
         # Checking valididty
         if not self.callbacks['cb_recipe_newrecipe'](recipe_name):
-            self.guidestring = "That is an invalid name. Press (almost) any key to continue."
+            self.guidestring = "That is an invalid name. Press enter to continue"
             self.print_screen_context()
             input("")
             return
