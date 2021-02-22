@@ -50,6 +50,8 @@ class View:
             , 'cb_recipe_newrecipe_additem': None
             , 'cb_recipe_newrecipe_modifyitem': None
             , 'cb_recipe_newrecipe_save': None
+            , 'cb_recipe_rename': None
+            , 'cb_recipe_additem': None
 
             , 'cb_product_search': None
 
@@ -195,7 +197,6 @@ class View:
         self.guidestring = guidestring
 
         # The difference here represents the number of menu items displayed per context
-        # Really I shouldn't hard code these but I'm getting impatient.
         left_index = 0
         right_index = self.menu_size
 
@@ -266,12 +267,16 @@ class View:
                 raise NotImplementedErrors("")
                 self.callbacks['cb_recipe_newrecipe_modifyitem']
             elif user_input == 'd':
-                self._menu_buildrecipe_additem()
+                self._menu_buildrecipe_additem('new', 99999)
 
-    def _menu_buildrecipe_additem(self):
+    def _menu_buildrecipe_additem(self, target: str, recipe_index: int):
         """
             Asks user for a search term that is then used to search the API
             The menu context then populates with the values
+
+
+
+            For the general refactor: Need to know the target and recipe index
         """
         # Querying user for ingredient name
         self.input_mirror_enable()
@@ -328,7 +333,7 @@ class View:
                     self.print_screen_context()
                     quantity = input("")
                     try:
-                        float(quantity)
+                        quantity = float(quantity)
                         # Adding item to planner and return to the previous menu
                         new_item = {
                             'colloquial_name': colloquial_name
@@ -336,10 +341,117 @@ class View:
                             , 'upc': selection['upc']
                             , 'quantity': quantity
                         }
-                        self.callbacks['cb_recipe_newrecipe_additem'](new_item)
-                        return
+                        if target == 'new':
+                            self.callbacks['cb_recipe_newrecipe_additem'](new_item)
+                            return
+                        elif target == 'existing':
+                            self.callbacks['cb_recipe_additem'](target, recipe_index, new_item)
+                        elif target == 'grocery':
+                            raise NotImplementedError("")
+
                     except ValueError:
                         continue
+
+    def _menu_modifyrecipe(self
+                           , target: str
+                           , recipe_index: int
+                           , recipe: dict) -> None:
+        """
+            Will be used:
+                1) from the "Select Recipe" screen to modify existing recipes
+                2) From the "Build Recipe" screen to modify selected items
+                3) from the "Build Grocery List" screen to make changes to the grocery list.
+                    We conceive the grocery list to be a special instance of a recipe.
+
+            Called from the menu context offering such service.
+
+            I could just remove the ability to modify the recipe as it is being constructed and instead
+            require it be saved and accessed from the "selected" screen..hmm.
+
+        Target: existing, new, or grocery. New means modify the new recipe, existing means it's modifying
+                a recipe that is in the planner's recipe list already, and grocery means that it is modifying
+                the special "recipe" that tracks the grocery list.
+
+        """
+
+        # List indices
+        left_index = 0
+        right_index = self.menu_size
+
+        # Input eval loop
+        user_input: str = ""
+        while user_input != 'b':
+            recipe_name = recipe['recipe_name']
+            self._update_option_slots([], 0, 0)  # Clearing screen
+            self.guidestring = f"Editing {recipe_name}: Select item to modify. [n] Renames recipe. [m] adds ingredient"
+            options = recipe['recipe_items']  # list of ingredients
+            slot_map = self._update_option_slots(options, left_index, right_index)
+            self.print_screen_context()
+            user_input = self._input_read()
+            if user_input == 'n':
+                self.guidestring = "What do you wish to name it?"
+                self.clear_screen()
+                self.input_mirror_enable()
+                new_name = input("")
+                self.callbacks['cb_recipe_rename'](target, recipe_index, new_name)
+                self.input_mirror_disable()
+
+            elif user_input in slot_map:
+                # Allow new ingredient name or quantity.
+                # If user wants to change th UPC/product ID they need to add
+                # A new ingredient instead
+                ingredient_index = slot_map[user_input]
+                ingredient = recipe['recipe_items'][ingredient_index]
+                self._menu_modify_ingredient(target, recipe_index, ingredient, ingredient_index)
+            elif user_input == 'm':
+                # Modify buildrecipte_additem to accept an arg specifying
+                # if it acts on the new recipe or a given recipe.
+                #
+                # Need to reload/refresh to ingredient list, then, once this is complete
+                # Actually we have the recipe handle and everything looks like it should refresh
+                # As written. So perhaps we are good there.
+                self._menu_buildrecipe_additem(target, recipe_index)
+
+    def _menu_modify_ingredient(self, target: str, recipe_index: int, ingredient: dict, ingredient_index: int):
+        """
+
+        :param target: "existing", "new", "grocery"
+        :param recipe_index:
+        :param recipe_item:
+        :return:
+        """
+        self.clear_screen()
+        #option_slot = self._update_option_slots([recipe_item])
+        user_input: str = ''
+        while user_input != 'b':
+            self.guidestring = '[n] rename, [q] update quantity'
+            self._update_option_slots([str(ingredient)], 0, self.menu_size)
+            self.print_screen_context()
+            user_input = self._input_read()
+
+            # Processing input
+            if user_input == 'n':
+                self.guidestring = 'New name:'
+                self.input_mirror_enable()
+                self.print_screen_context()
+                self.screenbuf_input.FlushConsoleInputBuffer()
+                new_name = input("")
+                self.callbacks['cb_ingredient_rename'](target, recipe_index, ingredient_index, new_name)
+                ingredient['colloquial_name'] = new_name
+                self.input_mirror_disable()
+            elif user_input == 'q':
+                self.guidestring = 'New quantity:'
+                self.input_mirror_enable()
+                self.print_screen_context()
+                self.screenbuf_input.FlushConsoleInputBuffer()
+                new_quantity = input("")
+                try:
+                    new_quantity = float(new_quantity)
+                    self.callbacks['cb_ingredient_requant'](target, recipe_index, ingredient_index, new_quantity)
+                    ingredient['quantity'] = new_quantity
+                except ValueError:
+                    pass
+                self.input_mirror_disable()
 
     def _build_cost_string(self, product_dict: dict) -> str:
         """
@@ -386,7 +498,8 @@ class View:
         right_index = self.menu_size
 
         # Building the context menu
-        guide_string = "[key] to make (de)selection, [b] to go back"
+        edit_mode = False
+        guide_string = ":Selection Mode: [b] to go back, [e] edit mode"
         self.guidestring = guide_string
         recipe_names = [recipe['recipe_name'] for recipe in recipes]
         slot_map = self._update_option_slots(recipe_names, left_index, right_index)
@@ -406,22 +519,63 @@ class View:
         # Beginning input eval loop
         user_input: str = ""
         while user_input != 'b':
+
             self.screenbuf_input.FlushConsoleInputBuffer()  # Flushing input buffer just to be safe
             user_input = self._input_read()
-            guide_string = "[key] to make (de)selection, [b] to go back"
-            self.guidestring = guide_string
-            if user_input in slot_map:  # A (de)selection was made
-                # Determining if action is selecting or deselecting
-                recipe_index = slot_map[user_input]
-                target_recipe = recipes[recipe_index]
-                if target_recipe['selected']:  # Deselecting
-                    target_recipe['selected'] = 0
-                    self.print_applycolor(user_input, 'gray')
-                    self.callbacks['cb_recipe_deselect'](recipe_index)
-                else:  # Selecting
-                    target_recipe['selected'] = 1
-                    self.print_applycolor(user_input, 'green')
-                    self.callbacks['cb_recipe_select'](recipe_index)
+
+            if edit_mode:
+                guide_string = ':Edit Mode: [b] back, [e] selection mode'
+            else:
+                guide_string = ':Selection Mode: [b] back, [e] edit mode'
+
+            if user_input == 'e':
+                # Changing modes
+                edit_mode = not edit_mode
+                if edit_mode:
+                    guide_string = ':Edit Mode: [b] back, [e] selection mode'
+                else:
+                    guide_string = ':Selection Mode: [b] back, [e] selection mode'
+                # Checking pagination
+                if left_index > 0:
+                    guide_string += ', [j] page left'
+                if right_index < len(recipe_names):
+                    guide_string += ', [k] page right'
+                self.guidestring = guide_string
+                self.print_screen_context()
+                update_selected()
+
+            # Selecting ingredient
+            elif user_input in slot_map:  # A selection was made
+                # Checking mode
+                if edit_mode:
+                    # Saving guide string for next loop
+                    guide_string = self.guidestring
+                    # Updating a recipe
+                    recipe_index = slot_map[user_input]
+                    recipe = recipes[recipe_index]
+                    self._menu_modifyrecipe('existing', recipe_index, recipe)
+                    # Updating view with latest recipe info
+                    recipes = self.callbacks['cb_recipes_get']()
+                    recipe_names = [recipe['recipe_name'] for recipe in recipes]
+                    # Rebuilding menu
+                    slot_map = self._update_option_slots(recipe_names, left_index, right_index)
+                    # refreshing guide string
+                    self.guidestring = guide_string
+                    self.print_screen_context()
+                    update_selected()
+
+                else:
+                    # Determining if action is selecting or deselecting
+                    recipe_index = slot_map[user_input]
+                    target_recipe = recipes[recipe_index]
+                    if target_recipe['selected']:  # Deselecting
+                        target_recipe['selected'] = 0
+                        self.print_applycolor(user_input, 'gray')
+                        self.callbacks['cb_recipe_deselect'](recipe_index)
+                    else:  # Selecting
+                        target_recipe['selected'] = 1
+                        self.print_applycolor(user_input, 'green')
+                        self.callbacks['cb_recipe_select'](recipe_index)
             elif self._paged(  # user pressed k
                         recipe_names,
                         left_index,
@@ -431,6 +585,7 @@ class View:
 
                 right_index += self.menu_size
                 left_index += self.menu_size
+                self.guidestring = guide_string
                 slot_map = self._update_option_slots(recipe_names, left_index, right_index)
                 self.print_screen_context()
                 update_selected()
@@ -441,9 +596,11 @@ class View:
                              user_input):
                 left_index -= self.menu_size
                 right_index -= self.menu_size
+                self.guidestring = guide_string
                 slot_map = self._update_option_slots(recipe_names, left_index, right_index)
                 self.print_screen_context()
                 update_selected()
+
 
     def _paged(self
                , option_list: list
@@ -534,6 +691,11 @@ class View:
         input_event = self.screenbuf_input.ReadConsoleInput(1)
         char = input_event[0].Char
         return char
+
+    def clear_screen(self):
+        self._update_option_slots([], 0, 0)
+        self.print_screen_context()
+
 
     def mainloop(self):
         while True:

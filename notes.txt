@@ -1,3 +1,30 @@
+2/21/2021
+
+
+    Refactor buildrecipe_additem to work in the edit recipe context.
+
+    Also need to update the information the recipes hold - the "description" is vital.
+
+    I just realized I'm probably doing a decent bit of unnecessary work since python is passing everything by reference.
+    The view and planner don't need to use the controller as a go-between for every little data change. Huh.
+    You dummy.
+
+
+II    Kroger refresh tokens are valid for 6 months. We could save them locally and save much time compared to web
+            scraping with Selenium
+
+
+    The Select Recipe screen will have a mode toggled between select and edit. Select acts as it does now while
+    edit will then open up a new page for modifying the recipe. This recipe page will then have a toggle between
+    add item and edit item.  Will likely refactor the view methods involved with building a new recipe to accommodate
+    both functions.
+
+    That still leaves the grocery list building/modifying portion, which I suppose could again reuse the recipe
+    modify screen. Could have a reserved word and make a "recipe" to slot into existing methods.
+
+    There also remains the purchasing portion of the bot.  The user will at least have to review the picku options
+    available. And have a final review/confirmation.
+
 2/20/2021
 
     Controller now sorts the recipe lists alphabetically.

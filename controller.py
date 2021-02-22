@@ -1,7 +1,3 @@
-"""
-"""
-
-
 # Project components
 import planner
 import communicator
@@ -38,7 +34,7 @@ class Controller:
 
     def read_recipes(self):
         recipes: list[dict]
-        with open('test_recipes.json', 'r') as recipe_file:
+        with open('recipes.json', 'r') as recipe_file:
             recipes = json.load(recipe_file)
             recipes.sort(key=lambda recipe: recipe['recipe_name'])
 
@@ -57,6 +53,12 @@ class Controller:
         self.view.callbacks['cb_recipe_newrecipe_additem'] = self.recipe_newrecipe_additem
         self.view.callbacks['cb_recipe_newrecipe_modifyitem'] = self.recipe_newrecipe_modifyitem
         self.view.callbacks['cb_recipe_newrecipe_save'] = self.recipe_newrecipe_save
+        self.view.callbacks['cb_recipe_rename'] = self.recipe_rename
+        self.view.callbacks['cb_recipe_additem'] = self.recipe_additem
+
+        # Ingredient callbacks
+        self.view.callbacks['cb_ingredient_rename'] = self.ingredient_rename
+        self.view.callbacks['cb_ingredient_requant'] = self.ingredient_requant
 
         # Grocery list callbacks
         self.view.callbacks['cb_grocery_buidlist'] = self.build_grocery_list
@@ -129,11 +131,15 @@ class Controller:
         """
         # Preparing for disk write
         self.planner.recipe_newrecipe_save()
+        return self.save_recipes()
+
+    def save_recipes(self):
+
         recipe_list = copy.deepcopy(self.planner.recipes)
 
         # Need to remove the "selected" field
         for recipe in recipe_list:
-            del(recipe['selected'])
+            del (recipe['selected'])
 
         # Writing to disk
         with open("updated_recipes.json", "w+") as updated_recipe_file:
@@ -149,6 +155,54 @@ class Controller:
         # All recipes written to disk. Moving tmp file to overwrite perennial
         os.replace("updated_recipes.json", "recipes.json")
         return True
+
+    def recipe_rename(self, target: str, recipe_index: int, new_name: str):
+
+        if target == "new":
+            self.planner.new_recipe['recipe_name'] = new_name
+        elif target == 'existing':
+            self.planner.recipes[recipe_index]['recipe_name'] = new_name
+            if not self.save_recipes():
+                print("Couldn't save recipe to disk")
+        elif target == "grocery":
+            raise NotImplementedError("")
+
+    def ingredient_rename(self, target: str, recipe_index: int, ingredient_index: int, new_name: str):
+
+        if target == 'new':
+            self.planner.new_recipe['recipe_items'][ingredient_index]['colloquial_name'] = new_name
+        elif target == 'existing':
+            self.planner.recipes[recipe_index]['recipe_items'][ingredient_index]['colloquial_name'] = new_name
+            self.save_recipes()
+
+        elif target == 'grocery':
+            raise NotImplementedError
+
+    def ingredient_requant(self, target, recipe_index: int, ingredient_index: int, new_quantity: int):
+
+        if target == 'new':
+            self.planner.new_recipe['recipe_items'][ingredient_index]['quantity'] = new_quantity
+        elif target == 'existing':
+            self.planner.recipes[recipe_index]['recipe_items'][ingredient_index]['quantity'] = new_quantity
+            self.save_recipes()
+        elif target == 'grocery':
+            raise NotImplementedError
+
+    def recipe_additem(self, target: str, recipe_index: int, new_item: dict):
+        """
+
+        :param target:
+
+        :param new_item: The dictionary of the recipe_item
+        :return:
+        """
+
+        if target == 'new':
+            self.planner.new_recipe['recipe_items'].append(new_item)
+        elif target == 'existing':
+            self.planner.recipes[recipe_index]['recipe_items'].append(new_item)
+
+
 
     def build_grocery_list(self) -> dict:
         """
