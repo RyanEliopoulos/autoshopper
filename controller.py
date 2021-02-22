@@ -36,7 +36,8 @@ class Controller:
         recipes: list[dict]
         with open('recipes.json', 'r') as recipe_file:
             recipes = json.load(recipe_file)
-            recipes.sort(key=lambda recipe: recipe['recipe_name'])
+            # Alphabetizing
+            recipes.sort(key=lambda recipe: recipe['recipe_name'].lower())
 
         return recipes
 
@@ -50,6 +51,7 @@ class Controller:
         self.view.callbacks['cb_recipe_select'] = self.select_recipe
         self.view.callbacks['cb_recipe_deselect'] = self.deselect_recipe
         self.view.callbacks['cb_recipe_newrecipe'] = self.recipe_newrecipe
+        self.view.callbacks['cb_newrecipe_struct'] = self.newrecipe_struct
         self.view.callbacks['cb_recipe_newrecipe_additem'] = self.recipe_newrecipe_additem
         self.view.callbacks['cb_recipe_newrecipe_modifyitem'] = self.recipe_newrecipe_modifyitem
         self.view.callbacks['cb_recipe_newrecipe_save'] = self.recipe_newrecipe_save
@@ -85,6 +87,9 @@ class Controller:
 
     def recipe_newrecipe(self, recipe_name: str) -> bool:
         return self.planner.recipe_new_recipe(recipe_name)
+
+    def newrecipe_struct(self):
+        return self.planner.new_recipe
 
     def product_search(self, search_string: str, page_size: int, direction: str = "") -> list[dict]:
         """
@@ -131,6 +136,9 @@ class Controller:
         """
         # Preparing for disk write
         self.planner.recipe_newrecipe_save()
+
+        # Alphabetizing recipe list again
+        self.planner.recipes.sort(key=lambda recipe: recipe['recipe_name'].lower())
         return self.save_recipes()
 
     def save_recipes(self):
@@ -198,7 +206,8 @@ class Controller:
         """
 
         if target == 'new':
-            self.planner.new_recipe['recipe_items'].append(new_item)
+            #self.planner.new_recipe['recipe_items'].append(new_item)
+            self.planner.recipe_newrecipe_additem(new_item)
         elif target == 'existing':
             self.planner.recipes[recipe_index]['recipe_items'].append(new_item)
 

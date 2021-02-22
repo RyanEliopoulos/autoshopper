@@ -1,6 +1,4 @@
-import time
 import win32console
-from typing import Callable
 from colorama import init as colorinit
 
 
@@ -117,7 +115,6 @@ class View:
             Toggle mode of the console echo. Based on the win32 API requirements
             https://docs.microsoft.com/en-us/windows/console/setconsolemode
         """
-        #val = win32console.ENABLE_ECHO_INPUT + win32console.ENABLE_LINE_INPUT
         self.screenbuf_input.SetConsoleMode(self.screenbuf_input_default)
 
     def input_mirror_disable(self):
@@ -226,6 +223,14 @@ class View:
                 self.print_screen_context()
 
     def _menu_buildrecipe(self):
+        """
+            Building a recipe from scratch
+            Should have two options:
+                                    Edit Recipe
+                                    Save recipe
+
+        :return:
+        """
         # Clearing screen
         self._update_option_slots([], 0, 0)
         self.guidestring = "Enter the name of the recipe: "
@@ -241,35 +246,39 @@ class View:
             self.print_screen_context()
             input("")
             return
-
-        # Building menu options
-        options = ['Add ingredient', 'Modify Ingredient', 'Save Recipe']
+        # Building menu
+        options = ['Edit recipe', 'Save recipe']
         options.reverse()
         left_index = 0
         right_index = self.menu_size
 
-        # Beginning menu loop
-        user_input: str = ""
+        new_recipe = self.callbacks['cb_newrecipe_struct']()
+        # Beginning eval loop
+        user_input: str = ''
         while user_input != 'b':
-            # Printing screen
+            recipe_name = new_recipe['recipe_name']
+            # printing screen
             self.screenbuf_input.FlushConsoleInputBuffer()
             self.guidestring = f'Building "{recipe_name}".  [b] for back'
             self._update_option_slots(options, left_index, right_index)
             self.input_mirror_disable()
             self.print_screen_context()
 
-            # Reading input
             user_input = self._input_read()
             if user_input == 'g':
-                self._recipe_newrecipe_save()
+                if len(new_recipe['recipe_items']) == 0:
+                    self.guidestring = "Cannot save an empty recipe. Enter to continue"
+                    self.print_screen_context()
+                    self.input_mirror_enable()
+                    input("")
+                    self.input_mirror_disable()
+                else:
+                    self._recipe_newrecipe_save()
                 return
             elif user_input == 'f':
-                raise NotImplementedErrors("")
-                self.callbacks['cb_recipe_newrecipe_modifyitem']
-            elif user_input == 'd':
-                self._menu_buildrecipe_additem('new', 99999)
+                self._menu_modifyrecipe('new', 99999, new_recipe)
 
-    def _menu_buildrecipe_additem(self, target: str, recipe_index: int):
+    def _menu_recipe_additem(self, target: str, recipe_index: int):
         """
             Asks user for a search term that is then used to search the API
             The menu context then populates with the values
@@ -410,7 +419,7 @@ class View:
                 # Need to reload/refresh to ingredient list, then, once this is complete
                 # Actually we have the recipe handle and everything looks like it should refresh
                 # As written. So perhaps we are good there.
-                self._menu_buildrecipe_additem(target, recipe_index)
+                self._menu_recipe_additem(target, recipe_index)
 
     def _menu_modify_ingredient(self, target: str, recipe_index: int, ingredient: dict, ingredient_index: int):
         """
@@ -421,7 +430,6 @@ class View:
         :return:
         """
         self.clear_screen()
-        #option_slot = self._update_option_slots([recipe_item])
         user_input: str = ''
         while user_input != 'b':
             self.guidestring = '[n] rename, [q] update quantity'
@@ -601,7 +609,6 @@ class View:
                 self.print_screen_context()
                 update_selected()
 
-
     def _paged(self
                , option_list: list
                , left_index: int
@@ -695,7 +702,6 @@ class View:
     def clear_screen(self):
         self._update_option_slots([], 0, 0)
         self.print_screen_context()
-
 
     def mainloop(self):
         while True:

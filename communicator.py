@@ -5,7 +5,7 @@
           expiry time and have each method call evaluate the need to refresh beforehand, removing the need to handle
           failure.
 
-
+    @TODO Communicator needs to gatekeep requests that don't contain the expected results e.g. invalid token error response
 """
 
 
@@ -29,7 +29,7 @@ class Communicator:  # Abstract base class
     api_base: str = 'https://api.kroger.com/v1/'
     api_token: str = 'connect/oauth2/token'
     api_authorize: str = 'connect/oauth2/authorize'  # "human" consent w/ redirect endpoint
-    # Pagination page (stand in)
+    # Pagination page
     pagination_index = 1
 
     # Tenney road Fred Meyer
@@ -196,6 +196,15 @@ class CustomerCommunicator(Communicator):
         self.authorization_code = authorization_code
 
     def get_tokens(self, refresh=False):
+        """
+                This will be the public interface that is used when the communicator needs to be on point
+                and have access tokens on hand. However, it is going to be clever and check to see if it already
+                has a fresh access token.
+
+        :param refresh:
+        :return:
+        """
+
         self._get_authcode()
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -240,7 +249,6 @@ class CustomerCommunicator(Communicator):
 
 
 ########################################################################################################################
-
 
 class AppCommunicator(Communicator):
 

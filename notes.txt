@@ -1,5 +1,7 @@
 2/21/2021
 
+2U  The menu can't present the recipes in alphabetic order as-is because we decidd to build the menus from the ground
+    up, causing each slice to be reversed.
 
     Refactor buildrecipe_additem to work in the edit recipe context.
 
