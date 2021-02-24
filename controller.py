@@ -17,7 +17,7 @@ import copy
 
 class Controller:
 
-    def __init__(self, disableview=False, get_tokens=True):
+    def __init__(self, disableview=False, stage_tokens=True):
         # Instantiating Planner (model)
         self.recipes: list = self.read_recipes()
         self.planner = planner.Planner(self.recipes)
@@ -25,10 +25,8 @@ class Controller:
         self.customer_communicator = communicator.CustomerCommunicator()
         self.app_communicator = communicator.AppCommunicator()
 
-        if get_tokens:
-            print("Please wait while we retrieve the tokens..")
-            self.customer_communicator.get_tokens()
-            print("Tokens received")
+        if stage_tokens:
+            self.customer_communicator.stage_tokens()
 
         if not disableview:  # To facilitate testing
             # Instantiating the view

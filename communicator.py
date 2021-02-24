@@ -1,12 +1,8 @@
 """
-    @TODO CustomerCommunicator has a method for refreshing tokens but is currently never utilized. Get_tokens
-            should be smart and either track the token expiration time or recover from the "invalid_token" response
-            intelligently with the refresh code.
-
-    @TODO   Refresh tokens are good for 6 months so I could also save those to disk. Probably a good idea to take out
-            that annoying user auth.
+    NOTE:  This program does not check for the edge case where the current process has outlived the months-long lifespan
+            of a refresh token. After 6 months of idling the process may attempt to update the refresh token with
+            an expired refresh token. I absolve myself of this responsibility.
 """
-
 
 import os
 import requests
@@ -16,15 +12,20 @@ from selenium.webdriver.common.keys import Keys
 import re
 import urllib.parse
 import time
+import json
+import datetime
 
 
-class Communicator:  # Abstract base class
+class Communicator:
+    # Thought I'd be clever with an abstract base class.. Not sure it was clever now.
+
     # App credentials
     client_id: str = os.getenv('kroger_app_client_id')
     client_secret: str = os.getenv('kroger_app_client_secret')
 
     # API credentials (stand in)
     access_token = None
+    access_token_timestamp = datetime.datetime(1990, 1, 1, 1, 1)
     # API urls
     api_base: str = 'https://api.kroger.com/v1/'
     api_token: str = 'connect/oauth2/token'
@@ -46,11 +47,37 @@ class Communicator:  # Abstract base class
         """
         raise NotImplementedError('Subclass should implement this')
 
+    def token_refresh(self):
+        """
+            Implemented by CustomerCommunicator
+        :return:
+        """
+        raise NotImplementedError
+
+    def valid_token(self) -> bool:
+        """
+            Evaluates the access token timestamp for freshness. Spec says 30m minutes. Will enforce 25 minutes.
+
+            The base class variable "access_token_timestamp" will be overwritten by the CustomerCommunicator variable.
+        :return:
+        """
+
+        now = datetime.datetime.now().timestamp()
+        diff_seconds = self.access_token_timestamp - now
+        diff_minutes = diff_seconds / 60
+
+        if diff_minutes >= 25:
+            return False
+        return True
+
     def get_productinfo(self, product_id: str) -> dict:
         """
             Pulls product info from the API and returns json/dict format of the response for caller to sort out
         :return:
         """
+        if not self.valid_token():
+            self.token_refresh()
+
         # Preparing request
         headers = {
             'Accept': 'application/json'
@@ -78,8 +105,13 @@ class Communicator:  # Abstract base class
         :param direction: either 'next' or 'previous'. Increments/decrements the pagination index relative to the
                             value of the previous product_search method call.  Invoking method without a direction
                             value resets the pagination index to default = 1
+        :param page_size: How many results per page the API will reply with
         :return:  Results from the API query
         """
+
+        if not self.valid_token():
+            self.token_refresh()
+
         if direction == 'next':
             self.pagination_index += page_size
             if self.pagination_index > 1000:  # Can't exceed 1k or API cries
@@ -141,10 +173,48 @@ class CustomerCommunicator(Communicator):
         self.password = os.getenv('kroger_password')
         # API variables
         self.access_token = None
+        access_token_timestamp = datetime.datetime(1990, 1, 1, 1, 1)  # Temp stand in. Epoch seconds.
         self.refresh_token = None
         self.authorization_code = None
         # Pagination index
         self.pagination_index = 1  # Helps product_search track state in case pagination is required
+
+    def stage_tokens(self):
+        """
+            Reads a {'refresh_token': <>, 'timestamp': <epoch seconds>} object from disk, if it exists,
+            evaluating the timestamp for validity.  Retrieves new access token if so, else engages human auth
+            for a new access token/refresh token pair.
+
+            Meant to be called at boot so that all methods querying the API can ask for a new token, if necessary.
+        """
+
+        try:
+            # Attempting to load {'token': <>, 'timestamp': <epoch>} object
+            with open('refresh_token.json', 'r') as token_file:
+                token_info = json.load(token_file)
+
+            # Evaluating token for freshness
+            # Refresh tokens are good for 6 months as of 2/24/2021
+            self.refresh_token = token_info['refresh_token']
+            timestamp = token_info['timestamp']  # Epoch timestamp
+            now = datetime.datetime.now().timestamp()
+            diff_seconds = now - timestamp
+            diff_minutes = diff_seconds / 60
+            diff_hours = diff_minutes / 60
+            diff_days = diff_hours / 24
+
+            if diff_days < 150:
+                # Token is still good.
+                # Retrieving new access and refresh tokens
+                self.token_refresh()
+            else:
+                # Declaring refresh token stale.
+                # Will need user auth to retrieve new tokens.
+                self.get_tokens()
+        except FileNotFoundError:
+            # Tokens not saved to disk
+            # Querying API with human credentials instead
+            self.get_tokens()
 
     def _get_authcode(self):
         """
@@ -194,10 +264,10 @@ class CustomerCommunicator(Communicator):
 
     def get_tokens(self):
         """
-                This will be the public interface that is used when the communicator needs to be on point
-                and have access tokens on hand.
+            Used in the event that no valid refresh tokens are available to generate new access and refresh tokens.
         """
 
+        print("Please wait while we retrieve the API tokens..")
         self._get_authcode()
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -215,14 +285,21 @@ class CustomerCommunicator(Communicator):
             print('error retrieving tokens with authorization_code')
             print(req.text)
             exit(4)
+        print("..Tokens retrieved")
         req = req.json()
         self.access_token = req['access_token']
+        self.access_token_timestamp = datetime.datetime.now().timestamp()
         self.refresh_token = req['refresh_token']
+
+        # Writing refresh token to disk
+        self.save_token()
 
     def token_refresh(self):
         """
-            Pulls new access and refresh tokens.
+            Pulls new access and refresh tokens using an existing, valid refresh token.
+            Up to caller to verify the refresh token is valid.
         """
+        print("refreshing tokens")
         # Prepping request
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -240,16 +317,40 @@ class CustomerCommunicator(Communicator):
             print("Error refreshing access token")
             print(req.text)
             exit(5)
-
         req = req.json()
+
+        # Updating token variables
         self.access_token = req['access_token']
+        self.access_token_timestamp = datetime.datetime.now().timestamp()
         self.refresh_token = req['refresh_token']
+        # Writing refresh token to disk
+        self.save_token()
+
+    def save_token(self):
+        """
+            Saves the fresh token to disk along with a timestamp in epoch seconds.
+            Called by get_tokens() and token_refresh()
+        """
+
+        try:
+            timestamp = datetime.datetime.now().timestamp()
+            jsn_object = {'refresh_token': self.refresh_token
+                          , 'timestamp': timestamp}
+            with open('refresh_token.json', 'w+') as token_file:
+                json.dump(jsn_object, token_file)
+
+        except Exception as e:
+            print(f"Encountered error writing refresh token to disk: {e}")
 
     def add_to_cart(self, shopping_list: list[dict]) -> bool:
         """
         :param shopping_list:  [{'upc': <>, 'quantity': <>}, ... ]
         :return bool indicating success/failure
         """
+
+        if not self.valid_token():
+            self.token_refresh()
+
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
             , 'Authorization': f'Bearer {self.access_token}'

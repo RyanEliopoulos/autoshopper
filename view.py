@@ -1,3 +1,9 @@
+"""
+    It seems the cursor might be getting toggled to become visible again after being made invisible in the init fnx.
+
+    @TODO Offer a graceful way of shutting down. Console settings aren't reverted by the program and there is a
+            "quit" button.
+"""
 import win32console  # Module for calling the win32 api
 from colorama import init as colorinit  # Enables ANSI escape sequence for terminals
 
