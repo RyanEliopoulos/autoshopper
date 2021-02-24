@@ -744,7 +744,14 @@ class View:
             I will probably need to add a filter here to ignore any non-key presses. Even then, I might have
             to filter out based on what counts as a KeyEvent e.g. key being released.
         """
+
+        # Will not return until a KEY_EVENT is detected. All others are ignored.
         input_event = self.screenbuf_input.ReadConsoleInput(1)
+        while True:
+            if input_event[0].EventType == win32console.KEY_EVENT:
+                if input_event[0].KeyDown:
+                    break
+            input_event = self.screenbuf_input.ReadConsoleInput(1)
         char = input_event[0].Char
         return char
 

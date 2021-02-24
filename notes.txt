@@ -20,7 +20,7 @@
        I really should have just made a recipe class.
 
 
-   8:26 pm
+    Evening Notes:
     The grocery order is now translated to a recipe format for use by the view. Users can create new recipes as well
     as edit existing recipes.  The grocery "recipe" is calculated based on the selected recipes. Being a recipe, the
     user can then modify the grocery list (once generated) and add one-off items.
@@ -28,6 +28,14 @@
     The user can then have the program populate the cart, leaving the final checkout process to the user to conduct
     in the browser.  Offering that info in the through web scrapping with selenium is kinda slow so further thinking
     on optimizations will be needed.
+
+
+    Apparently this program will not run in Powershell. Complains about SetConsoleCursorPosition
+
+
+
+
+
 
 
 2/21/2021
