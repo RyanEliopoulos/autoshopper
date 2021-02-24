@@ -1,7 +1,44 @@
+2/23/2021
+
+
+    Need to refactor grocery_order to be of the same structure than recipes are, since the goal is to re-use the
+    view's methods for editing recipes..
+
+    Grocery order will be a special recipe. The controller will then have to repack the grocery "recipe" to accommodate
+    the format that the communicator expects when adding the items to the cart.
+
+    Will also want to add a check in the modifyrecipe and modifyingredient methods in view so that the ingredients
+    name is printed out to include the description, quantity, and pricing info.
+
+
+    NEW PLAN: Have the controller construct a "recipe" from the dictionaries that comprise the grocery
+              order. Since it's pass by reference the view can modify them.
+
+
+
+
+       I really should have just made a recipe class.
+
+
+   8:26 pm
+    The grocery order is now translated to a recipe format for use by the view. Users can create new recipes as well
+    as edit existing recipes.  The grocery "recipe" is calculated based on the selected recipes. Being a recipe, the
+    user can then modify the grocery list (once generated) and add one-off items.
+
+    The user can then have the program populate the cart, leaving the final checkout process to the user to conduct
+    in the browser.  Offering that info in the through web scrapping with selenium is kinda slow so further thinking
+    on optimizations will be needed.
+
+
 2/21/2021
 
-2U  The menu can't present the recipes in alphabetic order as-is because we decidd to build the menus from the ground
-    up, causing each slice to be reversed.
+2U
+
+    Feb 2nd commit explains changing the recipes.json "quantity" value to a string instead of a number in order
+    to accommodate fractions/floats.. floats are probably better than that..
+
+    ALthough technically in alphabetically order, the individual context menu's are reversed since we build them
+    from the bottom up.
 
     Refactor buildrecipe_additem to work in the edit recipe context.
 

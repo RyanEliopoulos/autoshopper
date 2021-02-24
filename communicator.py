@@ -23,6 +23,7 @@ class Communicator:  # Abstract base class
     # App credentials
     client_id: str = os.getenv('kroger_app_client_id')
     client_secret: str = os.getenv('kroger_app_client_secret')
+
     # API credentials (stand in)
     access_token = None
     # API urls
@@ -68,6 +69,7 @@ class Communicator:  # Abstract base class
             print(f'Error retrieving info for product {product_id}')
             print(req.text)
         req = req.json()
+
         return req
 
     def product_search(self, search_term, page_size: int = 50, direction: str = None):
@@ -175,10 +177,15 @@ class CustomerCommunicator(Communicator):
         username_field = browser.find_element(By.ID, 'username')
         password_field = browser.find_element(By.ID, 'password')
 
-        username_field.send_keys(os.getenv('kroger_username'))
+        # username_field.send_keys(os.getenv('kroger_username'))
+        # time.sleep(1)
+        # password_field.send_keys(os.getenv('kroger_password'))
+        # time.sleep(1)
+        username_field.send_keys(self.username)
         time.sleep(1)
-        password_field.send_keys(os.getenv('kroger_password'))
+        password_field.send_keys(self.password)
         time.sleep(1)
+
         password_field.send_keys(Keys.ENTER)
 
         time.sleep(12)  # Hacky attempt at waiting for page to fully load
@@ -212,7 +219,7 @@ class CustomerCommunicator(Communicator):
         data = {
             'grant_type': 'authorization_code'
             , 'redirect_uri': Communicator.redirect_uri
-            , 'scope': 'profile.compact'
+            , 'scope': 'profile.compact cart.basic:write product.compact'
             , 'code': self.authorization_code
         }
         target_url = Communicator.api_base + Communicator.api_token
@@ -222,6 +229,37 @@ class CustomerCommunicator(Communicator):
             print('error retrieving tokens with authorization_code')
             print(req.text)
             exit(4)
+        req = req.json()
+        self.access_token = req['access_token']
+        self.refresh_token = req['refresh_token']
+
+    def token_refresh(self):
+
+        """
+            Pulls new access and refresh tokens.
+            Updates the value of Communicator.last_endpoint (updated as self) to indicate
+            the token is not committed to a particular endpoint yet
+
+        """
+
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+
+        data = {
+            'grant_type': 'refresh_token'
+            , 'refresh_token': self.refresh_token
+        }
+
+        target_url = Communicator.api_base + Communicator.api_token
+        req = Communicator.request('post', target_url, headers=headers, data=data,
+                                   auth=(Communicator.client_id, Communicator.client_secret))
+
+        if req.status_code != 200:
+            print("Error refreshing access token")
+            print(req.text)
+            exit(5)
+
         req = req.json()
         self.access_token = req['access_token']
         self.refresh_token = req['refresh_token']
@@ -242,6 +280,7 @@ class CustomerCommunicator(Communicator):
         req = Communicator.request('put', target_url, headers=headers, json=data)
         if req.status_code != 204:
             print("error adding items to cart")
+            print(req.status_code)
             print(req.text)
             exit()
 

@@ -63,10 +63,29 @@ class Controller:
         self.view.callbacks['cb_ingredient_requant'] = self.ingredient_requant
 
         # Grocery list callbacks
-        self.view.callbacks['cb_grocery_buidlist'] = self.build_grocery_list
+        self.view.callbacks['cb_grocery_buildlist'] = self.build_grocery_list
         self.view.callbacks['cb_grocery_modifylist'] = self.modify_grocery_list
+        self.view.callbacks['cb_grocery_get'] = self.grocery_get
 
+        # Other
         self.view.callbacks['cb_product_search'] = self.product_search
+        self.view.callbacks['cb_fill_cart'] = self.fill_cart
+
+    def fill_cart(self):
+
+        # Formatting items as required by the API
+        shopping_list = []
+        for ingredient in self.planner.grocery_recipe['recipe_items']:
+            trimmed_ingredient = {
+                'upc': ingredient['upc']
+                , 'quantity': ingredient['quantity']
+            }
+            shopping_list.append(trimmed_ingredient)
+
+        self.customer_communicator.add_to_cart(shopping_list)
+
+    def grocery_get(self):
+        return self.planner.grocery_recipe
 
     def get_recipes(self):
         return self.planner.recipes
@@ -173,7 +192,8 @@ class Controller:
             if not self.save_recipes():
                 print("Couldn't save recipe to disk")
         elif target == "grocery":
-            raise NotImplementedError("")
+            # Does nothing
+            return
 
     def ingredient_rename(self, target: str, recipe_index: int, ingredient_index: int, new_name: str):
 
@@ -184,7 +204,7 @@ class Controller:
             self.save_recipes()
 
         elif target == 'grocery':
-            raise NotImplementedError
+            return
 
     def ingredient_requant(self, target, recipe_index: int, ingredient_index: int, new_quantity: int):
 
@@ -194,55 +214,86 @@ class Controller:
             self.planner.recipes[recipe_index]['recipe_items'][ingredient_index]['quantity'] = new_quantity
             self.save_recipes()
         elif target == 'grocery':
-            raise NotImplementedError
+            if new_quantity <= 0:
+                self.planner.grocery_recipe['recipe_items'].pop(ingredient_index)
+            else:
+                self.planner.grocery_recipe['recipe_items'][ingredient_index]['quantity'] = new_quantity
 
     def recipe_additem(self, target: str, recipe_index: int, new_item: dict):
         """
 
-        :param target:
+        :param target: "existing", "new", or "grocery"
 
-        :param new_item: The dictionary of the recipe_item
-        :return:
+        :param new_item: The dictionary of the recipe_item. We will expect new the new_item to contain pricing
+                        information that is to be stored, at least in memory.
         """
 
         if target == 'new':
-            #self.planner.new_recipe['recipe_items'].append(new_item)
             self.planner.recipe_newrecipe_additem(new_item)
         elif target == 'existing':
             self.planner.recipes[recipe_index]['recipe_items'].append(new_item)
-
-
+        elif target == 'grocery':
+            self.planner.grocery_additem(new_item)
 
     def build_grocery_list(self) -> dict:
         """
-            Calls on Planner to construct the "grocery_order" dictionary based on the selected recipes.
-            Then iterates through each entry and asks CustomerCommunicator to retrieve the price and size
-            of each item. Grocery_order is updated accordingly before returning the dictionary to caller.
+            Orders Planner to construct a dictionary of { upc: {item info}}
+
+            This method then retrieves pricing, size, and description information from the API for each item.
+            Once the info is gathered this method translates the values into a special "recipe" that allows
+            the view to manipulate the grocery list reusing the same methods.
 
         :return: grocery_order: dict
         """
 
         # Summing recipe ingredients
         self.planner.grocery_buildfrom_selected()
+        grocery_dict = self.planner.grocery_order
+        self.grocery_retrievepricing(grocery_dict)
+
+        # Building grocery "recipe" for use by the view.
+        # (passing references to the dictionaries)
+        grocery_recipe = {
+            'recipe_name': 'grocery_list'
+            , 'recipe_items': []
+        }
+
+        for upc in grocery_dict:
+            ingredient = grocery_dict[upc]
+            grocery_recipe['recipe_items'].append(ingredient)
+        self.planner.grocery_recipe = grocery_recipe
+
+        return grocery_recipe
+
+    def grocery_retrievepricing(self, grocery_dict):
+
+        """
+                Since we don't want to cache prices we need to pull them down each time before the customer checks out.
+
+        :return:
+        """
 
         # Retrieving pricing information for each item
-        for upc in self.planner.grocery_order.keys():
-            # Asking server
-            product_id = self.planner.grocery_order[upc]['product_id']
-            product_info = self.customer_communicator.get_productinfo(product_id)
-            time.sleep(1)  # Respecting rate limits
-            # Price info
-            regular_price = product_info['data']['items'][0]['price']['regular']
-            promo_price = product_info['data']['items'][0]['price']['promo']
-            price = promo_price if promo_price > 0 else regular_price
-            # Size info
-            size = product_info['data']['items'][0]['size']
+        for upc in grocery_dict:
+            #if 'price' not in grocery_dict[upc]:
+            if grocery_dict[upc]['price'] == '?':
+                # Updating pricing info only if it wasn't present already
+                # Asking server
+                product_id = grocery_dict[upc]['product_id']
+                product_info = self.customer_communicator.get_productinfo(product_id)
+                time.sleep(1)  # Respecting rate limits
+                # Price info
+                description = product_info['data']['description']
+                regular_price = product_info['data']['items'][0]['price']['regular']
+                promo_price = product_info['data']['items'][0]['price']['promo']
+                price = promo_price if promo_price > 0 else regular_price
+                # Size info
+                size = product_info['data']['items'][0]['size']
 
-            # Updating local values
-            self.planner.grocery_order[upc]['price'] = price
-            self.planner.grocery_order[upc]['size'] = size
-
-        return self.planner.grocery_order
+                # Updating local values
+                grocery_dict[upc]['price'] = price
+                grocery_dict[upc]['size'] = size
+                grocery_dict[upc]['description'] = description
 
     def modify_grocery_list(self, upc: str, quantity: int) -> int:
         """

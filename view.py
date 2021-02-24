@@ -1,5 +1,5 @@
 import win32console
-from colorama import init as colorinit
+from colorama import init as colorinit  # Enables ANSI escape sequence for terminals
 
 
 class bcolors:
@@ -55,6 +55,8 @@ class View:
 
             , 'cb_grocery_buildlist': None
             , ' cb_grocery_moodifylist': None
+
+            , 'cb_fill_cart': None
         }
 
         # ANSI escape sequences
@@ -184,7 +186,7 @@ class View:
         options = ['Select Recipes',
                    'Build Recipe',
                    'Build Grocery List',
-                   'Place Order']
+                   'Fill Cart']
         # Reversing because the "first" option is the one nearest the bottom
         # and I want Select Recipes at the top
         options.reverse()
@@ -203,7 +205,7 @@ class View:
         self.print_screen_context()
 
         actions = {
-            'g': self._place_order,
+            'g': self._fill_cart,
             'f': self._grocery_buildlist,
             'd': self._menu_buildrecipe,
             's': self._recipes_select
@@ -283,9 +285,6 @@ class View:
             Asks user for a search term that is then used to search the API
             The menu context then populates with the values
 
-
-
-            For the general refactor: Need to know the target and recipe index
         """
         # Querying user for ingredient name
         self.input_mirror_enable()
@@ -346,9 +345,12 @@ class View:
                         # Adding item to planner and return to the previous menu
                         new_item = {
                             'colloquial_name': colloquial_name
+                            , 'description': selection['description']
                             , 'product_id': selection['product_id']
                             , 'upc': selection['upc']
                             , 'quantity': quantity
+                            , 'price': selection['price']
+                            , 'size': selection['size']
                         }
                         if target == 'new':
                             self.callbacks['cb_recipe_newrecipe_additem'](new_item)
@@ -356,7 +358,7 @@ class View:
                         elif target == 'existing':
                             self.callbacks['cb_recipe_additem'](target, recipe_index, new_item)
                         elif target == 'grocery':
-                            raise NotImplementedError("")
+                            self.callbacks['cb_recipe_additem'](target, recipe_index, new_item)
 
                     except ValueError:
                         continue
@@ -374,8 +376,6 @@ class View:
 
             Called from the menu context offering such service.
 
-            I could just remove the ability to modify the recipe as it is being constructed and instead
-            require it be saved and accessed from the "selected" screen..hmm.
 
         Target: existing, new, or grocery. New means modify the new recipe, existing means it's modifying
                 a recipe that is in the planner's recipe list already, and grocery means that it is modifying
@@ -390,13 +390,16 @@ class View:
         # Input eval loop
         user_input: str = ""
         while user_input != 'b':
+            # Building screen
             recipe_name = recipe['recipe_name']
             self._update_option_slots([], 0, 0)  # Clearing screen
             self.guidestring = f"Editing {recipe_name}: Select item to modify. [n] Renames recipe. [m] adds ingredient"
-            options = recipe['recipe_items']  # list of ingredients
+            options = recipe['recipe_items']
             slot_map = self._update_option_slots(options, left_index, right_index)
             self.print_screen_context()
+            self.screenbuf_input.FlushConsoleInputBuffer()
             user_input = self._input_read()
+            # Interpreting input
             if user_input == 'n':
                 self.guidestring = "What do you wish to name it?"
                 self.clear_screen()
@@ -404,25 +407,19 @@ class View:
                 new_name = input("")
                 self.callbacks['cb_recipe_rename'](target, recipe_index, new_name)
                 self.input_mirror_disable()
-
             elif user_input in slot_map:
-                # Allow new ingredient name or quantity.
-                # If user wants to change th UPC/product ID they need to add
-                # A new ingredient instead
+                # User chose to modify an ingredient
                 ingredient_index = slot_map[user_input]
                 ingredient = recipe['recipe_items'][ingredient_index]
                 self._menu_modify_ingredient(target, recipe_index, ingredient, ingredient_index)
             elif user_input == 'm':
-                # Modify buildrecipte_additem to accept an arg specifying
-                # if it acts on the new recipe or a given recipe.
-                #
-                # Need to reload/refresh to ingredient list, then, once this is complete
-                # Actually we have the recipe handle and everything looks like it should refresh
-                # As written. So perhaps we are good there.
+                # Adding ingredient from API query
                 self._menu_recipe_additem(target, recipe_index)
+
 
     def _menu_modify_ingredient(self, target: str, recipe_index: int, ingredient: dict, ingredient_index: int):
         """
+            Allows caller to modify the "colloquial" name and quantity of the specified ingredient.
 
         :param target: "existing", "new", "grocery"
         :param recipe_index:
@@ -457,6 +454,13 @@ class View:
                     new_quantity = float(new_quantity)
                     self.callbacks['cb_ingredient_requant'](target, recipe_index, ingredient_index, new_quantity)
                     ingredient['quantity'] = new_quantity
+                    if new_quantity == 0:
+                        self.guidestring = "Item deleted. Press enter to continue"
+                        self.print_screen_context()
+                        self.input_mirror_enable()
+                        input("")
+                        self.input_mirror_disable()
+                        return
                 except ValueError:
                     pass
                 self.input_mirror_disable()
@@ -492,10 +496,55 @@ class View:
         input("")
 
     def _grocery_buildlist(self):
-        pass
+        """
+            User can overwrite the existing list, should it exist, with one derived solely from
+            the recipes presently selected.
 
-    def _place_order(self):
-        pass
+            The user may also choose to edit an existing list
+        :return:
+        """
+        grocery_recipe = self.callbacks['cb_grocery_get']()
+
+        user_input: str = ''
+        while user_input != 'b':
+            # Building menu
+            self.clear_screen()
+            self.guidestring = '[q] Build list from selected recipes'
+            if len(grocery_recipe) > 0:
+                self.guidestring += ', [e] Edit existing grocery list'
+            self.print_screen_context()
+            self.screenbuf_input.FlushConsoleInputBuffer()
+            user_input = self._input_read()
+
+            # Parsing input
+            if user_input == 'q':
+                # (re)building grocery list
+                grocery_recipe = self.callbacks['cb_grocery_buildlist']()
+            elif user_input == 'e' and len(grocery_recipe) > 0:
+                # grocery order is being treated like a special recipe
+                self._menu_modifyrecipe('grocery', 99999, grocery_recipe)
+                return
+
+    def _fill_cart(self):
+        """
+            This will just call controller and have it load up all the
+            items into the cart. This will result in an alpha version for the program
+            whereby the core functionality is present. WIll just have to log in
+            to finalize the details of the order.
+
+        """
+        # Filling cart
+        self.clear_screen()
+        self.guidestring = "Filling cart with order"
+        self.print_screen_context()
+        self.callbacks['cb_fill_cart']()
+
+        # Cart filled. Informing user and returning
+        self.guidestring = "Filling complete. Press enter to continue"
+        self.print_screen_context()
+        self.input_mirror_enable()
+        input("")
+        self.input_mirror_disable()
 
     def _recipes_select(self):
 

@@ -1,3 +1,8 @@
+"""
+    Planner isn't anywhere complicated enough to justify this occupying the "model" portion of MVC.
+
+    A View/Controller would probably have been fine.
+"""
 
 class Planner:
 
@@ -9,14 +14,19 @@ class Planner:
 
         self.new_recipe: dict = None  # Temp var for when user is creating a new recipe
         # Grocery order - tally of ingredients/items for ordering
-        self.grocery_order = dict()
+        self.grocery_order = dict()    # Formatted to allow API to consume items
         """
             {upc:  {'colloquial_name': <>, 
                     'product_id': <>,
                     'quantity': <>,
                     'price': <>, 
+                    'upc': <>,  
                     'size': <e.g. 1 lb>}
+                    
         """
+        # Grocery_recipe contains many of the same structureda as the grocery_order
+        # But is in "recipe" format to allow the view to process it.
+        self.grocery_recipe = dict()
 
     def recipes_get(self):
         return self.recipes
@@ -127,9 +137,11 @@ class Planner:
                     colloq_name = items[upc]['colloquial_name']
                     quantity = items[upc]['quantity']
                     product_id = items[upc]['product_id']
+
                     self.grocery_order[upc] = {'colloquial_name': colloq_name,
                                                'product_id': product_id,
                                                'quantity': quantity,
+                                               'upc': upc,
                                                'price': '?',
                                                'size': '?'}
 
@@ -141,6 +153,27 @@ class Planner:
                 self.grocery_order[upc]['quantity'] = int(1 + original_quant)
             else:  # Casting to int to eliminate possible floats e.g. 3.0
                 self.grocery_order[upc]['quantity'] = int_quant
+
+    def grocery_additem(self, new_item):
+        """
+
+        :param new_item:
+                        {   "colloquial_name",
+                            "product_id",
+                            "upc",
+                            "quantity",
+                            "price",
+                            "size",
+                            "description"
+                        }
+        :return:
+        """
+        for ingredient in self.grocery_recipe['recipe_items']:
+            if ingredient['upc'] == new_item['upc']:
+                ingredient['quantity'] += new_item['quantity']
+                return
+
+        self.grocery_recipe['recipe_items'].append(new_item)
 
     def grocery_modifyquantity(self, upc: str, quantity: int) -> int:
         """

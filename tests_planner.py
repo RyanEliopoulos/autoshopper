@@ -163,3 +163,16 @@ class PlannerTests(unittest.TestCase):
         post_count = len(self.planner.recipes)
         # Checking change in recipe count
         self.assertEqual(1 + pre_count, post_count)
+
+    def test_playing(self):
+
+        recipes = self.planner.recipes
+        my_recipe = recipes[0]
+        my_recipe['selected'] = 1
+
+        select_recipes = self.planner.recipes_get_selected()
+        print(select_recipes)
+
+
+        grocery = self.planner.grocery_buildfrom_selected()
+        print(grocery)
