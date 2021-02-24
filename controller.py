@@ -1,3 +1,9 @@
+"""
+    @TODO It could be really cool to add multithreading to pre-fetch the product information from the server while
+            the user is navigating the menus and making selection decisions instead of causing the program to pause
+            when doing so.
+"""
+
 # Project components
 import planner
 import communicator
@@ -27,7 +33,6 @@ class Controller:
         if not disableview:  # To facilitate testing
             # Instantiating the view
             self.view = view.View()
-
             # Providing callback handles to self.view
             self.set_callbacks()
             self.mainloop()
@@ -71,22 +76,6 @@ class Controller:
         self.view.callbacks['cb_product_search'] = self.product_search
         self.view.callbacks['cb_fill_cart'] = self.fill_cart
 
-    def fill_cart(self):
-
-        # Formatting items as required by the API
-        shopping_list = []
-        for ingredient in self.planner.grocery_recipe['recipe_items']:
-            trimmed_ingredient = {
-                'upc': ingredient['upc']
-                , 'quantity': ingredient['quantity']
-            }
-            shopping_list.append(trimmed_ingredient)
-
-        self.customer_communicator.add_to_cart(shopping_list)
-
-    def grocery_get(self):
-        return self.planner.grocery_recipe
-
     def get_recipes(self):
         return self.planner.recipes
 
@@ -110,35 +99,6 @@ class Controller:
     def newrecipe_struct(self):
         return self.planner.new_recipe
 
-    def product_search(self, search_string: str, page_size: int, direction: str = "") -> list[dict]:
-        """
-            Caller must make sure the search_string is at least 3 characters in length.
-            That is the requirement of the kroger API
-
-            "direction" instructs the communicator object to "paginate" the results of the API call.
-            It remembers the previous position in the results page.
-
-            We will format the information for the view.
-        """
-        assert(len(search_string) >= 3)
-        req_results = self.customer_communicator.product_search(search_string, page_size, direction)
-        search_results = req_results['data']
-
-        desired_results = []
-        for result in search_results:
-            try:
-                product_dict = dict()
-                product_dict['description'] = result['description']
-                product_dict['product_id'] = result['productId']
-                product_dict['size'] = result['items'][0]['size']
-                product_dict['price'] = result['items'][0]['price']
-                product_dict['upc'] = result['upc']
-                desired_results.append(product_dict)
-            except KeyError:
-                continue
-
-        return desired_results
-
     def recipe_newrecipe_additem(self, item: dict) -> bool:
         return self.planner.recipe_newrecipe_additem(item)
 
@@ -160,10 +120,63 @@ class Controller:
         self.planner.recipes.sort(key=lambda recipe: recipe['recipe_name'].lower())
         return self.save_recipes()
 
+    def recipe_additem(self, target: str, recipe_index: int, new_item: dict):
+        """
+
+        :param target: "existing", "new", or "grocery"
+
+        :param new_item: The dictionary of the recipe_item. We will expect new the new_item to contain pricing
+                        information that is to be stored, at least in memory.
+        """
+
+        if target == 'new':
+            self.planner.recipe_newrecipe_additem(new_item)
+        elif target == 'existing':
+            self.planner.recipes[recipe_index]['recipe_items'].append(new_item)
+        elif target == 'grocery':
+            self.planner.grocery_additem(new_item)
+
+    def recipe_rename(self, target: str, recipe_index: int, new_name: str):
+        if target == "new":
+            self.planner.new_recipe['recipe_name'] = new_name
+        elif target == 'existing':
+            self.planner.recipes[recipe_index]['recipe_name'] = new_name
+            if not self.save_recipes():
+                print("Couldn't save recipe to disk")
+        elif target == "grocery":
+            # Does nothing
+            return
+
+    def ingredient_rename(self, target: str, recipe_index: int, ingredient_index: int, new_name: str):
+        if target == 'new':
+            self.planner.new_recipe['recipe_items'][ingredient_index]['colloquial_name'] = new_name
+        elif target == 'existing':
+            self.planner.recipes[recipe_index]['recipe_items'][ingredient_index]['colloquial_name'] = new_name
+            self.save_recipes()
+
+        elif target == 'grocery':
+            return
+
+    def ingredient_requant(self, target, recipe_index: int, ingredient_index: int, new_quantity: int):
+        """
+            Updates the quantity value of the specified ingredient belonging to the specified recipe
+        """
+        if target == 'new':
+            self.planner.new_recipe['recipe_items'][ingredient_index]['quantity'] = new_quantity
+        elif target == 'existing':
+            self.planner.recipes[recipe_index]['recipe_items'][ingredient_index]['quantity'] = new_quantity
+            self.save_recipes()
+        elif target == 'grocery':
+            if new_quantity <= 0:
+                self.planner.grocery_recipe['recipe_items'].pop(ingredient_index)
+            else:
+                self.planner.grocery_recipe['recipe_items'][ingredient_index]['quantity'] = new_quantity
+
     def save_recipes(self):
-
+        """
+            Saves recipes to disk
+        """
         recipe_list = copy.deepcopy(self.planner.recipes)
-
         # Need to remove the "selected" field
         for recipe in recipe_list:
             del (recipe['selected'])
@@ -183,57 +196,36 @@ class Controller:
         os.replace("updated_recipes.json", "recipes.json")
         return True
 
-    def recipe_rename(self, target: str, recipe_index: int, new_name: str):
-
-        if target == "new":
-            self.planner.new_recipe['recipe_name'] = new_name
-        elif target == 'existing':
-            self.planner.recipes[recipe_index]['recipe_name'] = new_name
-            if not self.save_recipes():
-                print("Couldn't save recipe to disk")
-        elif target == "grocery":
-            # Does nothing
-            return
-
-    def ingredient_rename(self, target: str, recipe_index: int, ingredient_index: int, new_name: str):
-
-        if target == 'new':
-            self.planner.new_recipe['recipe_items'][ingredient_index]['colloquial_name'] = new_name
-        elif target == 'existing':
-            self.planner.recipes[recipe_index]['recipe_items'][ingredient_index]['colloquial_name'] = new_name
-            self.save_recipes()
-
-        elif target == 'grocery':
-            return
-
-    def ingredient_requant(self, target, recipe_index: int, ingredient_index: int, new_quantity: int):
-
-        if target == 'new':
-            self.planner.new_recipe['recipe_items'][ingredient_index]['quantity'] = new_quantity
-        elif target == 'existing':
-            self.planner.recipes[recipe_index]['recipe_items'][ingredient_index]['quantity'] = new_quantity
-            self.save_recipes()
-        elif target == 'grocery':
-            if new_quantity <= 0:
-                self.planner.grocery_recipe['recipe_items'].pop(ingredient_index)
-            else:
-                self.planner.grocery_recipe['recipe_items'][ingredient_index]['quantity'] = new_quantity
-
-    def recipe_additem(self, target: str, recipe_index: int, new_item: dict):
+    def product_search(self, search_string: str, page_size: int, direction: str = "") -> list[dict]:
         """
+            Caller must make sure the search_string is at least 3 characters in length.
+            That is the requirement of the kroger API
 
-        :param target: "existing", "new", or "grocery"
+            "direction" instructs the communicator object to "paginate" the results of the API call.
+            It remembers the previous position in the results page.
 
-        :param new_item: The dictionary of the recipe_item. We will expect new the new_item to contain pricing
-                        information that is to be stored, at least in memory.
+            We will format the information for the view.
         """
+        assert (len(search_string) >= 3)
+        req_results = self.customer_communicator.product_search(search_string, page_size, direction)
+        search_results = req_results['data']
 
-        if target == 'new':
-            self.planner.recipe_newrecipe_additem(new_item)
-        elif target == 'existing':
-            self.planner.recipes[recipe_index]['recipe_items'].append(new_item)
-        elif target == 'grocery':
-            self.planner.grocery_additem(new_item)
+        desired_results = []
+        for result in search_results:
+            try:
+                product_dict = dict()
+                product_dict['description'] = result['description']
+                product_dict['product_id'] = result['productId']
+                product_dict['size'] = result['items'][0]['size']
+                product_dict['price'] = result['items'][0]['price']
+                product_dict['upc'] = result['upc']
+                desired_results.append(product_dict)
+            except KeyError:
+                # Some items aren't formatted to the API spec
+                # causing KeyErrors
+                continue
+
+        return desired_results
 
     def build_grocery_list(self) -> dict:
         """
@@ -268,14 +260,11 @@ class Controller:
     def grocery_retrievepricing(self, grocery_dict):
 
         """
-                Since we don't want to cache prices we need to pull them down each time before the customer checks out.
-
-        :return:
+            Updates the grocery "recipe" with the latest price, size, and description information by querying
+            the API.
         """
-
         # Retrieving pricing information for each item
         for upc in grocery_dict:
-            #if 'price' not in grocery_dict[upc]:
             if grocery_dict[upc]['price'] == '?':
                 # Updating pricing info only if it wasn't present already
                 # Asking server
@@ -300,6 +289,23 @@ class Controller:
             Returns the quantity of the given item after "quantity" is added to it.
         """
         return self.planner.grocery_modifyquantity(upc, quantity)
+
+    def grocery_get(self):
+        return self.planner.grocery_recipe
+
+    def fill_cart(self):
+        """
+            Loads up the digital shopping cart with the goods specified in the grocery "recipe"
+        """
+        # Formatting items as required by the API
+        shopping_list = []
+        for ingredient in self.planner.grocery_recipe['recipe_items']:
+            trimmed_ingredient = {
+                'upc': ingredient['upc']
+                , 'quantity': ingredient['quantity']
+            }
+            shopping_list.append(trimmed_ingredient)
+        self.customer_communicator.add_to_cart(shopping_list)
 
     def mainloop(self):
         self.view.mainloop()

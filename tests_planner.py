@@ -7,7 +7,6 @@ class PlannerTests(unittest.TestCase):
     """
         Planner relies on the ingredient UPC for testing. Product id is not used
     """
-
     def setUp(self) -> None:
         with open('test_recipes.json', 'r') as recipe_file:
             recipes = json.load(recipe_file)

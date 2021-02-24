@@ -4,6 +4,10 @@ from communicator import CustomerCommunicator
 
 
 class CustomerCommunicatorTests(unittest.TestCase):
+    """
+        I think I want setUpClass() Here to get a Communicator instance persistent across
+        all of the tests.
+    """
     def test_get_authcode(self):
         customer_comm = CustomerCommunicator()
         customer_comm._get_authcode()

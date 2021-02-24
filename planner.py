@@ -1,8 +1,3 @@
-"""
-    Planner isn't anywhere complicated enough to justify this occupying the "model" portion of MVC.
-
-    A View/Controller would probably have been fine.
-"""
 
 class Planner:
 
@@ -24,7 +19,7 @@ class Planner:
                     'size': <e.g. 1 lb>}
                     
         """
-        # Grocery_recipe contains many of the same structureda as the grocery_order
+        # Grocery_recipe contains many of the same structures as the grocery_order
         # But is in "recipe" format to allow the view to process it.
         self.grocery_recipe = dict()
 
@@ -85,9 +80,8 @@ class Planner:
 
     def recipe_newrecipe_save(self):
         """
-            Saves the in-progress recipe to the in-memory recipe list.
-
-            Controller should handle writing the new value to disk and assessing success.
+            Saves the in-progress recipe to "recipe_list", which contains all of the recipes read from disk at
+            boot as well as any other recipes created by the user in the current session.
         """
 
         self.recipes.append(self.new_recipe)
@@ -95,11 +89,11 @@ class Planner:
 
     def recipe_tallyitems(self, recipe: dict):
         """
+            Groups all like ingredients based on UPC.
+
             Returns {<upc>: {"colloquial_name": <>,
                              "quantity": <x>,
                              "product_id": <id> }
-        :param recipe:
-        :return:
         """
         items = dict()
         for item in recipe['recipe_items']:
@@ -113,15 +107,53 @@ class Planner:
                 items[upc] = {'colloquial_name': colloq_name,
                               'quantity': quantity,
                               'product_id': product_id}
-
         return items
+
+    def grocery_additem(self, new_item):
+        """
+        Add given item to the grocery "recipe"
+        :param new_item:
+                        {   "colloquial_name",
+                            "product_id",
+                            "upc",
+                            "quantity",
+                            "price",
+                            "size",
+                            "description"
+                        }
+        """
+        for ingredient in self.grocery_recipe['recipe_items']:
+            if ingredient['upc'] == new_item['upc']:
+                ingredient['quantity'] += new_item['quantity']
+                return
+
+        self.grocery_recipe['recipe_items'].append(new_item)
+
+    def grocery_modifyquantity(self, upc: str, quantity: int) -> int:
+        """
+            Adds "quantity" to the existing self.grocery_order[upc] value
+            Pops the UPC from the dictionary if the total quantity <= 0
+
+            Raises KeyError if attempting to modify an UPC that isn't
+
+            Returns the remaining quantity for the given item
+        """
+        try:
+            self.grocery_order[upc]['quantity'] += quantity
+            if self.grocery_order[upc]['quantity'] <= 0:
+                self.grocery_order.pop(upc)
+                return 0
+            return self.grocery_order[upc]['quantity']
+
+        except KeyError as ke:
+            print('no such items exists to delete..')
+            raise KeyError
 
     def grocery_buildfrom_selected(self):
         """
             Overwrites self.grocery_order based on ingredients of the selected recipes
 
             All item quantities are rounded up to the nearest integer value
-        :return:  None
         """
         self.grocery_order = dict()
 
@@ -153,45 +185,3 @@ class Planner:
                 self.grocery_order[upc]['quantity'] = int(1 + original_quant)
             else:  # Casting to int to eliminate possible floats e.g. 3.0
                 self.grocery_order[upc]['quantity'] = int_quant
-
-    def grocery_additem(self, new_item):
-        """
-
-        :param new_item:
-                        {   "colloquial_name",
-                            "product_id",
-                            "upc",
-                            "quantity",
-                            "price",
-                            "size",
-                            "description"
-                        }
-        :return:
-        """
-        for ingredient in self.grocery_recipe['recipe_items']:
-            if ingredient['upc'] == new_item['upc']:
-                ingredient['quantity'] += new_item['quantity']
-                return
-
-        self.grocery_recipe['recipe_items'].append(new_item)
-
-    def grocery_modifyquantity(self, upc: str, quantity: int) -> int:
-        """
-            Adds "quantity" to the existing self.grocery_order[upc] value
-            Pops the UPC from the dictionary if the total quantity <= 0
-
-            Raises KeyError if attempting to modify an UPC that isn't
-
-            Returns the remaining quantity for the given item
-        """
-        try:
-            self.grocery_order[upc]['quantity'] += quantity
-            if self.grocery_order[upc]['quantity'] <= 0:
-                self.grocery_order.pop(upc)
-                return 0
-            return self.grocery_order[upc]['quantity']
-
-        except KeyError as ke:
-            print('no such items exists to delete..')
-            raise KeyError
-

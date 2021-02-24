@@ -1,11 +1,10 @@
 """
+    @TODO CustomerCommunicator has a method for refreshing tokens but is currently never utilized. Get_tokens
+            should be smart and either track the token expiration time or recover from the "invalid_token" response
+            intelligently with the refresh code.
 
-    @TODO CustomerCommunicator needs a way to update the access token upon expiry.
-          Might have to override base class implementation in order to handle the error case.  Could also track the
-          expiry time and have each method call evaluate the need to refresh beforehand, removing the need to handle
-          failure.
-
-    @TODO Communicator needs to gatekeep requests that don't contain the expected results e.g. invalid token error response
+    @TODO   Refresh tokens are good for 6 months so I could also save those to disk. Probably a good idea to take out
+            that annoying user auth.
 """
 
 
@@ -69,7 +68,6 @@ class Communicator:  # Abstract base class
             print(f'Error retrieving info for product {product_id}')
             print(req.text)
         req = req.json()
-
         return req
 
     def product_search(self, search_term, page_size: int = 50, direction: str = None):
@@ -80,7 +78,7 @@ class Communicator:  # Abstract base class
         :param direction: either 'next' or 'previous'. Increments/decrements the pagination index relative to the
                             value of the previous product_search method call.  Invoking method without a direction
                             value resets the pagination index to default = 1
-        :return:
+        :return:  Results from the API query
         """
         if direction == 'next':
             self.pagination_index += page_size
@@ -118,7 +116,7 @@ class Communicator:  # Abstract base class
     def request(verb, url, headers=None, data=None, params=None, auth=None, json=None):
         """
             Centralized place for making calls to the requests library.
-            Centralization might come in handy so..
+            Useful idea? Verdict inconclusive
         """
         # Pulling appropriate request method
         str_to_req = {
@@ -149,15 +147,13 @@ class CustomerCommunicator(Communicator):
         self.pagination_index = 1  # Helps product_search track state in case pagination is required
 
     def _get_authcode(self):
-
         """
-                Requires Selenium to emulate customer input, authorizing the app to do it's thing.
-                Kroger includes the authorization code as a param in the redirect url.
+            Requires Selenium to emulate customer input, authorizing the app to do it's thing.
+            Kroger includes the authorization code as a param in the redirect url.
 
-                Really need a good way to pause until the page is fully loaded
-
-            :return: None
-            """
+            Really need a good way to pause until the page is fully loaded. For now we just pause for 12
+            seconds. That's not great.
+        """
         # Preparing URL
         params = {
             'scope': 'profile.compact cart.basic:write product.compact'
@@ -176,16 +172,10 @@ class CustomerCommunicator(Communicator):
         # Impersonating human authorization
         username_field = browser.find_element(By.ID, 'username')
         password_field = browser.find_element(By.ID, 'password')
-
-        # username_field.send_keys(os.getenv('kroger_username'))
-        # time.sleep(1)
-        # password_field.send_keys(os.getenv('kroger_password'))
-        # time.sleep(1)
         username_field.send_keys(self.username)
         time.sleep(1)
         password_field.send_keys(self.password)
         time.sleep(1)
-
         password_field.send_keys(Keys.ENTER)
 
         time.sleep(12)  # Hacky attempt at waiting for page to fully load
@@ -202,14 +192,10 @@ class CustomerCommunicator(Communicator):
 
         self.authorization_code = authorization_code
 
-    def get_tokens(self, refresh=False):
+    def get_tokens(self):
         """
                 This will be the public interface that is used when the communicator needs to be on point
-                and have access tokens on hand. However, it is going to be clever and check to see if it already
-                has a fresh access token.
-
-        :param refresh:
-        :return:
+                and have access tokens on hand.
         """
 
         self._get_authcode()
@@ -234,27 +220,22 @@ class CustomerCommunicator(Communicator):
         self.refresh_token = req['refresh_token']
 
     def token_refresh(self):
-
         """
             Pulls new access and refresh tokens.
-            Updates the value of Communicator.last_endpoint (updated as self) to indicate
-            the token is not committed to a particular endpoint yet
-
         """
-
+        # Prepping request
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
-
         data = {
             'grant_type': 'refresh_token'
             , 'refresh_token': self.refresh_token
         }
-
         target_url = Communicator.api_base + Communicator.api_token
+
+        # Evaluating response
         req = Communicator.request('post', target_url, headers=headers, data=data,
                                    auth=(Communicator.client_id, Communicator.client_secret))
-
         if req.status_code != 200:
             print("Error refreshing access token")
             print(req.text)
