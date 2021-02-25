@@ -27,11 +27,11 @@ a standard Kroger account (for online shopping).
 
 First run will require user input to provide consent from the standard kroger account to your new app. Once done:
 <br>
-    1) build new recipes <br>
-    2) select which ones you'd like to cook <br> 
-    3) construct the grocery list <br>
+    1) Build new recipes <br>
+    2) Select which ones you'd like to cook <br> 
+    3) Finalize the grocery list <br>
     4) Fill cart <br>
-    5) Finalize order through a web browser at kroger.com <br>
+    5) Confirm order on kroger.com
 
 <br><br>
 <b>Main Menu</b> - Navigate with key strokes as denoted on screen.

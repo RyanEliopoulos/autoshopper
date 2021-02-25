@@ -264,7 +264,7 @@ class View:
         # Building context menu
         options = ['Select Recipes',
                    'Build Recipe',
-                   'Build Grocery List',
+                   'Finalize Grocery List',
                    'Fill Cart']
         # Reversing because the "first" option is the one nearest the bottom
         # and I want Select Recipes at the top
