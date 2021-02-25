@@ -403,6 +403,7 @@ class View:
                     recipe_names,
                     left_index,
                     right_index,
+                    'right',
                     user_input):
 
                 right_index += self.menu_size
@@ -414,6 +415,7 @@ class View:
             elif self._paged(recipe_names,  # user pressed j
                              left_index,
                              right_index,
+                             'left',
                              user_input):
                 left_index -= self.menu_size
                 right_index -= self.menu_size
@@ -426,6 +428,7 @@ class View:
                , option_list: list
                , left_index: int
                , right_index: int
+               , direction: str
                , user_input: str) -> bool:
         """
             Returns true if the user is able to page the menu in the stated direction based on the current value of
@@ -434,11 +437,11 @@ class View:
         :return:  bool
         """
 
-        if user_input == 'k':
+        if user_input == 'k' and direction == 'right':
             if right_index < len(option_list):
                 return True
 
-        elif user_input == 'j':
+        elif user_input == 'j' and direction == 'left':
             if left_index > 0:
                 return True
 

@@ -141,6 +141,8 @@ class Controller:
             self.planner.recipes[recipe_index]['recipe_name'] = new_name
             if not self.save_recipes():
                 print("Couldn't save recipe to disk")
+            # Re-alphabetizing
+            self.planner.recipes.sort(key=lambda recipe: recipe['recipe_name'].lower())
         elif target == "grocery":
             # Does nothing
             return
