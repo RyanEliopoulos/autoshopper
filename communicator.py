@@ -299,7 +299,6 @@ class CustomerCommunicator(Communicator):
             Pulls new access and refresh tokens using an existing, valid refresh token.
             Up to caller to verify the refresh token is valid.
         """
-        print("refreshing tokens")
         # Prepping request
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'

@@ -542,7 +542,7 @@ class View:
                 self.input_mirror_disable()
                 option_map = self._update_option_slots(presentable_strings, 0, self.menu_size)
                 # "try" because current mechanism queries the API directly
-                self.guidestring = "[r] retry, [b] return, [j] and [k] to try paginating"
+                self.guidestring = "[r] retry, [b] return, [j] and [k] to paginate"
                 self.print_screen_context()
                 self.screenbuf_input.FlushConsoleInputBuffer()
 
