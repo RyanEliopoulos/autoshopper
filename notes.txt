@@ -1,3 +1,9 @@
+2/28/2021
+
+    The self-imposed rate limit on the product info endpoint was needless. Removed.  I'll explore asyncio to further
+    improve speeds as that endpoing accepts only one product at a time.
+
+
 2/23/2021
 
 

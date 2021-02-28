@@ -270,7 +270,6 @@ class Controller:
                 # Asking server
                 product_id = grocery_dict[upc]['product_id']
                 product_info = self.customer_communicator.get_productinfo(product_id)
-                time.sleep(1)  # Respecting rate limits
                 # Price info
                 description = product_info['data']['description']
                 regular_price = product_info['data']['items'][0]['price']['regular']
