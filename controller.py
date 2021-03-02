@@ -39,11 +39,17 @@ class Controller:
 
     def read_recipes(self):
         recipes: list[dict]
-        with open('recipes.json', 'r') as recipe_file:
-            recipes = json.load(recipe_file)
-            # Alphabetizing
-            recipes.sort(key=lambda recipe: recipe['recipe_name'].lower())
 
+        try:
+            with open('recipes.json', 'r') as recipe_file:
+                recipes = json.load(recipe_file)
+
+        except FileNotFoundError:
+            with open('recipes.json', 'w+') as recipe_file:
+                recipes.json.load(recipe_file)
+
+        # Alphabetizing
+        recipes.sort(key=lambda recipe: recipe['recipe_name'].lower())
         return recipes
 
     def set_callbacks(self):
