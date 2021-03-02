@@ -37,11 +37,17 @@ class Controller:
 
     def read_recipes(self):
         recipes: list[dict]
-        with open('recipes.json', 'r') as recipe_file:
-            recipes = json.load(recipe_file)
-            # Alphabetizing
-            recipes.sort(key=lambda recipe: recipe['recipe_name'].lower())
 
+        try:
+            with open('recipes.json', 'r') as recipe_file:
+                recipes = json.load(recipe_file)
+
+        except FileNotFoundError:
+            with open('recipes.json', 'w+') as recipe_file:
+                recipes.json.load(recipe_file)
+
+        # Alphabetizing
+        recipes.sort(key=lambda recipe: recipe['recipe_name'].lower())
         return recipes
 
     def set_callbacks(self):
@@ -270,7 +276,6 @@ class Controller:
                 # Asking server
                 product_id = grocery_dict[upc]['product_id']
                 product_info = self.customer_communicator.get_productinfo(product_id)
-                time.sleep(1)  # Respecting rate limits
                 # Price info
                 description = product_info['data']['description']
                 regular_price = product_info['data']['items'][0]['price']['regular']
