@@ -13,6 +13,11 @@
 
     Need to add a configure binding to adjust widgets to the root window when it exceeds the minimum dimensions.
 
+
+
+    Need to address widget sizing. Should rewrite what I've got to be cleaner.
+
+
 """
 
 from tkinter import *
@@ -32,6 +37,10 @@ class ScrollFrame(Frame):
         self.parent = parent
         self.grid(column=column, row=row, sticky=(N, S, E, W))
         self.grid_propagate(False)
+
+        # Setting up mouse wheel functionality
+        self.bind('<Enter>', self._bound_to_mousewheel)
+        self.bind('<Leave>', self._unbound_to_mousewheel)
 
         # Child canvas
         self.canvas = Canvas(self, height=1000, width=280, scrollregion=(0, 0, 280, 2000))
@@ -54,6 +63,17 @@ class ScrollFrame(Frame):
         scrollbar.grid(column=1, row=0, sticky=(N, S))
         scrollbar.config(command=self.canvas.yview)
         self.canvas.config(yscrollcommand=scrollbar.set)
+
+    def _bound_to_mousewheel(self, event):
+        self.canvas.bind('<MouseWheel>', self._on_mousewheel)
+
+    def _unbound_to_mousewheel(self, event):
+        self.canvas.unbind('<MouseWheel>')
+
+    def _on_mousewheel(self, event):
+        self.canvas.yview_scroll(int(-1*(event.delta/120)), 'units')
+
+
 
     def hide(self, event):
         print('in hide')
