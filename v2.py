@@ -6,6 +6,13 @@
     columnconfigure(minsize=) Modifies the minimum width
     rowconfigure(minsize=) modifies the minimum height
 
+
+    Gotta use canvas.create_window in order to get the desired scrolling action.
+
+
+
+    Need to add a configure binding to adjust widgets to the root window when it exceeds the minimum dimensions.
+
 """
 
 from tkinter import *
@@ -19,6 +26,11 @@ def print_size(event):
 
 def on_demand(event):
 
+    """
+        Prints size of the widget that was clicked
+    :param event:
+    :return:
+    """
     widget_height = event.widget.winfo_height()
     widget_width = event.widget.winfo_width()
     print(f'Size of {event.widget}: ({widget_height}, {widget_width})')
@@ -42,43 +54,55 @@ def clicked_me(event):
     print(f'Clicked {event.widget}')
 
 
-class SelectScreenSelectFrame:
+class RecipesScrollFrame(Frame):
     """
-        Parent of a scrollable canvas that will contain the various
-        frames for selecting/deselecting recipes
-
+        Frame containing a canvas and a scrollbar for manipulating that canvas, as well as a frame held within
+        the canvas as a window.
 
     """
 
-    def __init__(self, widget_root):
-        self.widget_root = widget_root
+    def __init__(self, parent, **kwargs):
+        Frame.__init__(self, parent, **kwargs)
+        self.parent = parent
         self.active_select_frame = None  # updated by the SelectScreenRecipeFrame objects if they were clicked
+        self.grid(column=0, row=0, sticky=(N, S, E, W))
+        self.bind('<Button-1>', lambda: print('Clicked me'))
+        self.grid_propagate(False)
 
-        # Frame
-        self.select_frame = Frame(widget_root, height=1000, width=300)
-        self.select_frame.grid(column=0, row=0, sticky=(N, S, E, W))
-        self.select_frame.grid_propagate(False)
-        self.select_frame.bind('<Button-1>', clicked_me)
-        # Canvas
-        self.canvas = Canvas(self.select_frame, height=1000, width=280)
+        # Child canvas
+        self.canvas = Canvas(self, height=1000, width=280, scrollregion=(0, 0, 280, 2000))
         self.canvas.grid(column=0, row=0, sticky=(N, S, E, W))
         self.canvas.config(background='green')
         self.canvas.columnconfigure(0, minsize=270)
-        self.canvas.rowconfigure(0, minsize=20)
+        self.canvas.rowconfigure(0, minsize=2000)
         self.canvas.grid_propagate(False)
-        #self.canvas.bind('<Button-1>', clicked_me)
+
+        # Canvas child frame
+        self.canvas_frame = Frame(self.canvas, height=1000, width=280)
+        canvas_x = self.canvas.canvasx(0)
+        canvas_y = self.canvas.canvasy(0)
+        self.canvas.create_window((canvas_x, canvas_y), window=self.canvas_frame, anchor='nw')
+        self.canvas.bind('<Button-1>', self.canvas_coords)
+        #self.select_frame.grid(column=0, row=0, sticky=(N, S, E, W))
+        #self.select_frame.grid_propagate(False)
+        #self.select_frame.bind('<Button-1>', clicked_me)
+
         # # # Scrollbar
-        scrollbar = Scrollbar(self.select_frame, width=20)
+        scrollbar = Scrollbar(self, width=20)
         scrollbar.grid(column=1, row=0, sticky=(N, S))
         scrollbar.config(command=self.canvas.yview)
         self.canvas.config(yscrollcommand=scrollbar.set)
 
-        #self.select_frame.config(width=1000)
 
+
+    def canvas_coords(self, event):
+        canvasx = event.widget.canvasx(event.x)
+        canvasy = event.widget.canvasy(event.y)
+        print(f'Clicked ({canvasx}, {canvasy})')
 
     def build_list(self):
-        new_recipe = SelectScreenRecipeFrame(self, self.canvas, "fried chicken", row=0, bg='light gray')
-        new_recipe = SelectScreenRecipeFrame(self, self.canvas, "Bacon and eggs", row=1, bg='white')
+        new_recipe = SelectScreenRecipeFrame(self, self.canvas_frame, "fried chicken", row=0, bg='light gray')
+        new_recipe = SelectScreenRecipeFrame(self, self.canvas_frame, "Bacon and eggs", row=1, bg='white')
 
 
 def clicked_checkbox():
@@ -92,14 +116,14 @@ class SelectScreenRecipeFrame:
         and a label providing the recipe name
     """
 
-    def __init__(self, select_frame, parent_canvas, recipe_name, row, bg):
+    def __init__(self, recipe_scrollframe, parent_frame, recipe_name, row, bg):
         # This object
-        self.select_frame = select_frame
-        self.parent = parent_canvas
+        self.recipe_scrollframe = recipe_scrollframe
+        self.parent_frame = parent_frame
         self.default_color = bg
 
         # Frame
-        self.this = Frame(parent_canvas, height=40, width=285)
+        self.this = Frame(parent_frame, height=40, width=285)
         self.this.columnconfigure(0, minsize=20)
         self.this.columnconfigure(1, minsize=20)
         self.this.grid(column=0, row=row, sticky=W)
@@ -133,11 +157,11 @@ class SelectScreenRecipeFrame:
             Changes the background color to indicate selected.  Informs select frame of the new selection so it
             can toggle off the old selected recipe frame.
         """
-        old_recipe_frame = self.select_frame.active_select_frame
+        old_recipe_frame = self.recipe_scrollframe.active_select_frame
         if old_recipe_frame is not None:
             old_recipe_frame.default_colors()
 
-        self.select_frame.active_select_frame = self
+        self.recipe_scrollframe.active_select_frame = self
 
         self.this.config(background='light blue')
         self.checkbox.config(background='light blue')
@@ -194,7 +218,7 @@ if __name__ == "__main__":
     # left_frame = Frame(root, height=1000, width=1000)
     # left_frame.config(background='red')
     # left_frame.grid(column=0, row=0, sticky=(N, S, E, W))
-    left_frame = SelectScreenSelectFrame(root)
+    left_frame = RecipesScrollFrame(root, height=1000, width=200)
     right_frame = Frame(root, height=1000, width=700)
     right_frame.config(background='blue')
     right_frame.grid(column=1, row=0, sticky=(N, S, E, W))
@@ -206,6 +230,7 @@ if __name__ == "__main__":
 
     #root.bind('<Configure>', print_size)
     root.bind('f', on_demand)
+
     def frame_resize(the_root, the_left_frame, the_right_frame):
         left_height = the_root.winfo_height()
         #left_width = int(the_root.winfo_width() * .8)
@@ -213,7 +238,7 @@ if __name__ == "__main__":
         right_height = left_height
         #right_width = int(the_root.winfo_width() * .2)
 
-        the_left_frame.select_frame.config(height=left_height)
+        the_left_frame.config(height=left_height)
                               #width=left_width)
         the_left_frame.build_list()
 
