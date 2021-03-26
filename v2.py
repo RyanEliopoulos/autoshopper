@@ -20,9 +20,6 @@ from tkinter import ttk
 from tkinter import messagebox
 
 
-def print_size(event):
-    print(event.widget, event)
-
 
 def on_demand(event):
 
@@ -50,9 +47,47 @@ def on_demand(event):
         recurse(child)
 
 
-def clicked_me(event):
-    print(f'Clicked {event.widget}')
 
+class SelectMenu:
+
+    def __init__(self, root_widget, recipes: list[dict]):
+        self.root_widget = root_widget
+        self.recipes: list[dict] = recipes  # I think I want this key/value keyed on recipe name
+
+        # Left side frame
+        self.recipes_scrollframe = RecipesScrollFrame(recipes, 0, 0, root_widget, height=1000, width=200)
+        # Right side frame
+        self.recipe_displayframe = DisplayScrollFrame(recipes, 1, 0, root_widget, height=1000, width=700)
+        # Setting one-way communication method (left side frame -> right side frame)
+        self.recipes_scrollframe.displayrecipe = self.recipe_displayframe.makevisible
+        # self.right_frame = Frame(root_widget, height=1000, width=700)
+        # self.right_frame.config(background='blue')
+        # self.right_frame.grid(column=1, row=0, sticky=(N, S, E, W))
+
+
+        # Root widget settings
+        self.root_widget.columnconfigure(0, weight=0, minsize=300)
+        self.root_widget.columnconfigure(1, weight=1, minsize=700)
+        self.root_widget.minsize(1000, 800)
+        self.root_widget.after(1, self.frame_resize)
+
+    def update_displayed_recipe(self ):
+        ...
+
+    def frame_resize(self):
+        left_height = self.root_widget.winfo_height()
+        #left_width = int(the_root.winfo_width() * .8)
+
+        right_height = left_height
+        #right_width = int(the_root.winfo_width() * .2)
+
+        self.recipes_scrollframe.config(height=left_height)
+                              #width=left_width)
+        self.recipes_scrollframe.build_list()
+
+        self.recipe_displayframe.config(height=right_height)
+                              #width=right_width)
+        self.recipe_displayframe.build_list()
 
 class ScrollFrame(Frame):
     """
@@ -61,19 +96,18 @@ class ScrollFrame(Frame):
 
         Sizing is hardcoded. Should probably be based on CONSTANTS or something
     """
-    def __init__(self, parent, **kwargs):
+    def __init__(self, column, row, parent, **kwargs):
         Frame.__init__(self, parent, **kwargs)
         self.parent = parent
-        self.active_select_frame = None  # updated by the SelectScreenRecipeFrame objects if they were clicked
-        self.grid(column=0, row=0, sticky=(N, S, E, W))
+        self.grid(column=column, row=row, sticky=(N, S, E, W))
         self.grid_propagate(False)
 
         # Child canvas
         self.canvas = Canvas(self, height=1000, width=280, scrollregion=(0, 0, 280, 2000))
         self.canvas.grid(column=0, row=0, sticky=(N, S, E, W))
-        self.canvas.config(background='green')
-        self.canvas.columnconfigure(0, minsize=270)
-        self.canvas.rowconfigure(0, minsize=2000)
+        # self.canvas.config(background='green')
+        # self.canvas.columnconfigure(0, minsize=270)
+        # self.canvas.rowconfigure(0, minsize=2000)
         self.canvas.grid_propagate(False)
         self.canvas.bind('<Button-1>', self.hide)
 
@@ -107,9 +141,18 @@ class RecipesScrollFrame(ScrollFrame):
 
     """
 
-    def __init__(self, parent, **kwargs):
-        ScrollFrame.__init__(self, parent, **kwargs)
+    def __init__(self, recipes: list[dict], column, row, parent, **kwargs):
+        ScrollFrame.__init__(self, column, row, parent, **kwargs)
         self.parent = parent
+        self.recipes = recipes
+        self.active_select_frame = None
+        self.displayrecipe = None  # A method to communicate with the right frame. Is updated by SelectMenu.
+
+        self.canvas.config(background='green')
+        self.canvas.columnconfigure(0, minsize=270)
+        self.canvas.rowconfigure(0, minsize=2000)
+
+
         # self.active_select_frame = None  # updated by the SelectScreenRecipeFrame objects if they were clicked
         # self.grid(column=0, row=0, sticky=(N, S, E, W))
         # self.bind('<Button-1>', lambda: print('Clicked me'))
@@ -147,12 +190,60 @@ class RecipesScrollFrame(ScrollFrame):
         print(f'Clicked ({canvasx}, {canvasy})')
 
     def build_list(self):
-        new_recipe = SelectScreenRecipeFrame(self, self.canvas_frame, "fried chicken", row=0, bg='light gray')
-        new_recipe = SelectScreenRecipeFrame(self, self.canvas_frame, "Bacon and eggs", row=1, bg='white')
+        bg = 'light gray'
+        for index, recipe in enumerate(self.recipes):
+            SelectScreenRecipeFrame(self, self.canvas_frame, recipe['name'], row=index, bg=bg)
+            if bg == 'light gray':
+                bg = 'white'
+            else:
+                bg = 'light gray'
 
 
-def clicked_checkbox():
-    print("Clicked the checkbox")
+class DisplayScrollFrame(ScrollFrame):
+    """
+        Presents the right-hand side of the selection screen. Displays the recipe information
+        of the recipe currently highlighted on the left side of the screen.
+    """
+
+    def __init__(self, recipes: list[dict], column, row, parent, **kwargs):
+        ScrollFrame.__init__(self, column, row, parent, **kwargs)
+        self.recipes = recipes
+        self.display_frames: dict = {}
+        self.displayedframe = None
+        # Has a dict of the recipe display frames keyed to recipe name?
+        self.columnconfigure(0, minsize=680)
+        self.columnconfigure(1, minsize=20)
+        super().config(background='blue')
+
+    def build_list(self):
+        """
+            Builds out the frames that display the recipe information.
+        :return:
+        """
+        ...
+        for recipe in self.recipes:
+            new_frame = SelectScreenRecipeDisplayFrame(recipe, self.canvas_frame, height=1000, width=700)
+            recipe_name = recipe['name']
+            self.display_frames[recipe_name] = new_frame
+
+    def makevisible(self, recipe_name: str):
+        if self.displayedframe is not None:
+            self.displayedframe.grid_remove()
+        self.displayedframe = self.display_frames[recipe_name]
+        self.displayedframe.grid()
+
+class SelectScreenRecipeDisplayFrame(Frame):
+    """
+        This object displays all the information about a given recipe.
+    """
+
+    def __init__(self, recipe: dict, parent, **kwargs):
+        Frame.__init__(self, parent, **kwargs)
+        self.grid(column=0, row=0)
+        new_label = Label(self, height=100, width=100, text=recipe['name'], anchor='nw')
+        new_label.grid(column=0, row=1)
+        self.grid_remove()
+
 
 
 class SelectScreenRecipeFrame:
@@ -167,6 +258,7 @@ class SelectScreenRecipeFrame:
         self.recipe_scrollframe = recipe_scrollframe
         self.parent_frame = parent_frame
         self.default_color = bg
+        self.recipe_name = recipe_name
 
         # Frame
         self.this = Frame(parent_frame, height=40, width=285)
@@ -208,11 +300,11 @@ class SelectScreenRecipeFrame:
             old_recipe_frame.default_colors()
 
         self.recipe_scrollframe.active_select_frame = self
+        self.recipe_scrollframe.displayrecipe(self.recipe_name)
 
         self.this.config(background='light blue')
         self.checkbox.config(background='light blue')
         self.label.config(background='light blue')
-
 
 
 
@@ -251,45 +343,21 @@ if __name__ == "__main__":
         'notes': 'I like toast even more'
     }
 
-    recipes = [first_recipe, second_recipe, third_recipe]
+    # recipes = {
+    #     'tacos': first_recipe,
+    #     'spaghetti': second_recipe,
+    #     'toast': third_recipe
+    # }
 
     # Tk begins
 
+    recipes = [first_recipe, second_recipe, third_recipe]
     root = Tk()
     root.title('Playing around')
     root.state('zoomed')  # Maximizes window
-    rheight = root.winfo_height()
-    rwidth = root.winfo_width()
 
-    # left_frame = Frame(root, height=1000, width=1000)
-    # left_frame.config(background='red')
-    # left_frame.grid(column=0, row=0, sticky=(N, S, E, W))
-    left_frame = RecipesScrollFrame(root, height=1000, width=200)
-    right_frame = Frame(root, height=1000, width=700)
-    right_frame.config(background='blue')
-    right_frame.grid(column=1, row=0, sticky=(N, S, E, W))
-    #right_frame.lower()
-
-    root.columnconfigure(0, weight=0, minsize=300)
-    root.columnconfigure(1, weight=1, minsize=700)
-    root.minsize(1000, 800)
-
-    #root.bind('<Configure>', print_size)
     root.bind('f', on_demand)
 
-    def frame_resize(the_root, the_left_frame, the_right_frame):
-        left_height = the_root.winfo_height()
-        #left_width = int(the_root.winfo_width() * .8)
+    select_menu = SelectMenu(root, recipes)
 
-        right_height = left_height
-        #right_width = int(the_root.winfo_width() * .2)
-
-        the_left_frame.config(height=left_height)
-                              #width=left_width)
-        the_left_frame.build_list()
-
-        the_right_frame.config(height=right_height)
-                              #width=right_width)
-
-    root.after(1, frame_resize, root, left_frame, right_frame)
     root.mainloop()
