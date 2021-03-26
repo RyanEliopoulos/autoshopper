@@ -54,19 +54,18 @@ def clicked_me(event):
     print(f'Clicked {event.widget}')
 
 
-class RecipesScrollFrame(Frame):
+class ScrollFrame(Frame):
     """
         Frame containing a canvas and a scrollbar for manipulating that canvas, as well as a frame held within
         the canvas as a window.
 
+        Sizing is hardcoded. Should probably be based on CONSTANTS or something
     """
-
     def __init__(self, parent, **kwargs):
         Frame.__init__(self, parent, **kwargs)
         self.parent = parent
         self.active_select_frame = None  # updated by the SelectScreenRecipeFrame objects if they were clicked
         self.grid(column=0, row=0, sticky=(N, S, E, W))
-        self.bind('<Button-1>', lambda: print('Clicked me'))
         self.grid_propagate(False)
 
         # Child canvas
@@ -76,22 +75,69 @@ class RecipesScrollFrame(Frame):
         self.canvas.columnconfigure(0, minsize=270)
         self.canvas.rowconfigure(0, minsize=2000)
         self.canvas.grid_propagate(False)
+        self.canvas.bind('<Button-1>', self.hide)
 
         # Canvas child frame
         self.canvas_frame = Frame(self.canvas, height=1000, width=280)
         canvas_x = self.canvas.canvasx(0)
         canvas_y = self.canvas.canvasy(0)
-        self.canvas.create_window((canvas_x, canvas_y), window=self.canvas_frame, anchor='nw')
-        self.canvas.bind('<Button-1>', self.canvas_coords)
-        #self.select_frame.grid(column=0, row=0, sticky=(N, S, E, W))
-        #self.select_frame.grid_propagate(False)
-        #self.select_frame.bind('<Button-1>', clicked_me)
+        self.ret_val = self.canvas.create_window((canvas_x, canvas_y), window=self.canvas_frame, anchor='nw')
+        self.frame_hidden = False
 
         # # # Scrollbar
         scrollbar = Scrollbar(self, width=20)
         scrollbar.grid(column=1, row=0, sticky=(N, S))
         scrollbar.config(command=self.canvas.yview)
         self.canvas.config(yscrollcommand=scrollbar.set)
+
+    def hide(self, event):
+        print('in hide')
+        if self.frame_hidden:
+            self.frame_hidden = False
+            self.canvas.itemconfig(self.ret_val, state='normal')
+        else:
+            self.frame_hidden = True
+            self.canvas.itemconfig(self.ret_val, state='hidden')
+
+
+class RecipesScrollFrame(ScrollFrame):
+    """
+        Frame containing a canvas and a scrollbar for manipulating that canvas, as well as a frame held within
+        the canvas as a window.
+
+    """
+
+    def __init__(self, parent, **kwargs):
+        ScrollFrame.__init__(self, parent, **kwargs)
+        self.parent = parent
+        # self.active_select_frame = None  # updated by the SelectScreenRecipeFrame objects if they were clicked
+        # self.grid(column=0, row=0, sticky=(N, S, E, W))
+        # self.bind('<Button-1>', lambda: print('Clicked me'))
+        # self.grid_propagate(False)
+        #
+        # # Child canvas
+        # self.canvas = Canvas(self, height=1000, width=280, scrollregion=(0, 0, 280, 2000))
+        # self.canvas.grid(column=0, row=0, sticky=(N, S, E, W))
+        # self.canvas.config(background='green')
+        # self.canvas.columnconfigure(0, minsize=270)
+        # self.canvas.rowconfigure(0, minsize=2000)
+        # self.canvas.grid_propagate(False)
+        #
+        # # Canvas child frame
+        # self.canvas_frame = Frame(self.canvas, height=1000, width=280)
+        # canvas_x = self.canvas.canvasx(0)
+        # canvas_y = self.canvas.canvasy(0)
+        # self.canvas.create_window((canvas_x, canvas_y), window=self.canvas_frame, anchor='nw')
+        # self.canvas.bind('<Button-1>', self.canvas_coords)
+        # #self.select_frame.grid(column=0, row=0, sticky=(N, S, E, W))
+        # #self.select_frame.grid_propagate(False)
+        # #self.select_frame.bind('<Button-1>', clicked_me)
+        #
+        # # # # Scrollbar
+        # scrollbar = Scrollbar(self, width=20)
+        # scrollbar.grid(column=1, row=0, sticky=(N, S))
+        # scrollbar.config(command=self.canvas.yview)
+        # self.canvas.config(yscrollcommand=scrollbar.set)
 
 
 
@@ -226,7 +272,7 @@ if __name__ == "__main__":
 
     root.columnconfigure(0, weight=0, minsize=300)
     root.columnconfigure(1, weight=1, minsize=700)
-    root.minsize(1000, 1000)
+    root.minsize(1000, 800)
 
     #root.bind('<Configure>', print_size)
     root.bind('f', on_demand)
