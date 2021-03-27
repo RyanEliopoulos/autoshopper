@@ -39,8 +39,8 @@ class ScrollFrame(Frame):
         self.grid_propagate(False)
 
         # Setting up mouse wheel functionality
-        self.bind('<Enter>', self._bound_to_mousewheel)
-        self.bind('<Leave>', self._unbound_to_mousewheel)
+        # self.bind('<Enter>', self._bound_to_mousewheel)
+        # self.bind('<Leave>', self._unbound_to_mousewheel)
 
         # Child canvas
         self.canvas = Canvas(self, height=1000, width=280, scrollregion=(0, 0, 280, 2000))
@@ -58,6 +58,8 @@ class ScrollFrame(Frame):
         self.ret_val = self.canvas.create_window((canvas_x, canvas_y), window=self.canvas_frame, anchor='nw')
         self.frame_hidden = False
 
+        # self.canvas_frame.bind('<Enter>', self._bound_to_mousewheel)
+        # self.canvas_frame.bind('<Leave>', self._unbound_to_mousewheel)
         # # # Scrollbar
         scrollbar = Scrollbar(self, width=20)
         scrollbar.grid(column=1, row=0, sticky=(N, S))
@@ -65,12 +67,15 @@ class ScrollFrame(Frame):
         self.canvas.config(yscrollcommand=scrollbar.set)
 
     def _bound_to_mousewheel(self, event):
-        self.canvas.bind('<MouseWheel>', self._on_mousewheel)
+        print('bound')
+        self.canvas_frame.bind('<MouseWheel>', self._on_mousewheel)
 
     def _unbound_to_mousewheel(self, event):
-        self.canvas.unbind('<MouseWheel>')
+        print('unbound')
+        self.canvas_frame.unbind_all('<MouseWheel>')
 
     def _on_mousewheel(self, event):
+        #print('here')
         self.canvas.yview_scroll(int(-1*(event.delta/120)), 'units')
 
 
@@ -191,6 +196,10 @@ class SelectScreenRecipeFrame:
         self.this.bind('<Button-1>', self.select_recipe_frame)
         self.label.bind('<Button-1>', self.select_recipe_frame)
 
+        # Binding mousewheel to scrolling (I hope)
+        self.this.bind('<Enter>', self._bound_to_mousewheel)
+        self.this.bind('<Leave>', self._unbound_to_mousewheel)
+
     def default_colors(self):
         self.this.config(background=self.default_color)
         self.checkbox.config(background=self.default_color)
@@ -215,6 +224,17 @@ class SelectScreenRecipeFrame:
         self.checkbox.config(background='light blue')
         self.label.config(background='light blue')
 
+    def _bound_to_mousewheel(self, event):
+        print('bound')
+        self.this.bind('<MouseWheel>', self._on_mousewheel)
+
+    def _unbound_to_mousewheel(self, event):
+        print('unbound')
+        self.this.unbind_all('<MouseWheel>')
+
+    def _on_mousewheel(self, event):
+        #print('here')
+        self.recipe_scrollframe.canvas.yview_scroll(int(-1*(event.delta/120)), 'units')
 
 class DisplayScrollFrame(ScrollFrame):
     """
@@ -259,8 +279,12 @@ class SelectScreenRecipeDisplayFrame(Frame):
         # Attending to self
         Frame.__init__(self, parent, **kwargs)
         self.grid(column=0, row=0)
+        # Recipe name label
         self.recipe_label = Label(self, height=100, width=100, text=recipe['name'], anchor='nw', font=('', 30))
-        self.recipe_label.grid(column=0, row=1)
+        self.recipe_label.grid(column=0, row=0)
+        # "Ingredient" header
+        self.ingredient_header = Label(self, height=100, width=100, text='Ingredients', anchor='nw')
+        self.ingredient_header.grid(column=0, row=1)
 
         self.grid_remove()  # Frame is hidden unless the recipe is been clicked
 
