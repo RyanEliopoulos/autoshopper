@@ -197,8 +197,15 @@ class SelectScreenRecipeFrame:
         self.label.bind('<Button-1>', self.select_recipe_frame)
 
         # Binding mousewheel to scrolling (I hope)
+        # Recipe Frame
         self.this.bind('<Enter>', self._bound_to_mousewheel)
         self.this.bind('<Leave>', self._unbound_to_mousewheel)
+        # checkbox
+        self.checkbox.bind('<Enter>', self._bound_to_mousewheel)
+        self.checkbox.bind('<Leave>', self._unbound_to_mousewheel)
+        # label
+        self.label.bind('<Enter>', self._bound_to_mousewheel)
+        self.label.bind('<Leave>', self._unbound_to_mousewheel)
 
     def default_colors(self):
         self.this.config(background=self.default_color)
@@ -226,14 +233,14 @@ class SelectScreenRecipeFrame:
 
     def _bound_to_mousewheel(self, event):
         print('bound')
-        self.this.bind('<MouseWheel>', self._on_mousewheel)
+        event.widget.bind('<MouseWheel>', self._on_mousewheel)
 
     def _unbound_to_mousewheel(self, event):
         print('unbound')
-        self.this.unbind_all('<MouseWheel>')
+        event.widget.unbind_all('<MouseWheel>')
 
     def _on_mousewheel(self, event):
-        #print('here')
+        print('here')
         self.recipe_scrollframe.canvas.yview_scroll(int(-1*(event.delta/120)), 'units')
 
 class DisplayScrollFrame(ScrollFrame):
