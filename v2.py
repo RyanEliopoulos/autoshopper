@@ -18,6 +18,8 @@
     Need to address widget sizing. Should rewrite what I've got to be cleaner.
 
 
+    Control variables to propagate recipe edits?
+
 """
 
 from tkinter import *
@@ -53,6 +55,7 @@ class ScrollFrame(Frame):
 
         # Canvas child frame
         self.canvas_frame = Frame(self.canvas, height=1000, width=280)
+        #self.canvas_frame.grid_propagate(False)
         canvas_x = self.canvas.canvasx(0)
         canvas_y = self.canvas.canvasy(0)
         self.ret_val = self.canvas.create_window((canvas_x, canvas_y), window=self.canvas_frame, anchor='nw')
@@ -286,14 +289,49 @@ class SelectScreenRecipeDisplayFrame(Frame):
         # Attending to self
         Frame.__init__(self, parent, **kwargs)
         self.grid(column=0, row=0)
+        self.config(background='purple')
+        self.grid_propagate(False)
         # Recipe name label
-        self.recipe_label = Label(self, height=100, width=100, text=recipe['name'], anchor='nw', font=('', 30))
-        self.recipe_label.grid(column=0, row=0)
-        # "Ingredient" header
-        self.ingredient_header = Label(self, height=100, width=100, text='Ingredients', anchor='nw')
-        self.ingredient_header.grid(column=0, row=1)
-
+        self.recipe_label = Label(self, height=3, width=10, text=recipe['name'], font=('', 30))
+        self.recipe_label.grid(column=0, row=0, sticky=N)
+        # # "Ingredient" header
+        self.ingredient_header = Label(self, height=5, width=10, text='Ingredients', font=('', 30))
+        self.ingredient_header.grid(column=0, row=1, sticky=W)
+        # list of ingredient labels
+        self.ingredient_frames: list = self.ingredients(recipe)
+        # Notes
+        self.note_label = Label(self, height=3, width=8, text='Notes', font=('', 30))
+        self.note_label.grid(sticky=W)
+        self.textbox = Text(self, height=50, width=50)
+        self.textbox.insert('1.0', recipe['notes'])
+        self.textbox.grid(sticky=W)
+        # Placeholder for the text input widget
         self.grid_remove()  # Frame is hidden unless the recipe is been clicked
+
+        self.bind('<Button-1>', lambda event: print(event.x, event.y))
+
+    def ingredients(self, recipe):
+        ...
+        ingredient_frames = []
+        for index, ingredient in enumerate(recipe['ingredients']):
+            # Frame first
+            ingredient_frame = Frame(self, height=100, width=700)
+            ingredient_frame.grid_propagate(False)
+            ingredient_frame.grid()
+            # Filling in frame's contents (sub widgets)
+            index_label = Label(ingredient_frame, height=3, width=3, text=f'# {index}')
+            index_label.grid(column=0, row=0)
+            ingredient_label = Label(ingredient_frame, height=3, width=10, text=ingredient['ingredient_name'])
+            ingredient_label.grid(column=1, row=0)
+            quantity_label = Label(ingredient_frame, height=3, width=3, text=ingredient['quantity'])
+            quantity_label.grid(column=2, row=0)
+            soldby_label = Label(ingredient_frame, height=3, width=3, text=ingredient['soldBy'])
+            soldby_label.grid(column=3, row=0)
+
+            ingredient_frames.append(ingredient_frame)
+
+        return ingredient_frames
+
 
 
 if __name__ == "__main__":
@@ -302,9 +340,11 @@ if __name__ == "__main__":
         'name': 'tacos',
         'ingredients': [
             {'ingredient_name': 'ground beef',
-             'quantity': 1},
+             'quantity': 1,
+             'soldBy': 'unit'},
             {'ingredient_name': 'taco shell',
-             'quantity': 1}
+             'quantity': 1,
+             'soldBy': 'unit'}
         ],
         'notes': 'This is the long list of words and letters\nThat ultimately will make up the note zone'
     }
@@ -313,9 +353,11 @@ if __name__ == "__main__":
         'name': 'spaghetti',
         'ingredients': [
             {'ingredient_name': 'noodles',
-             'quantity': 1},
+             'quantity': 1,
+             'soldBy': 'unit'},
             {'ingredient_name': 'sauce',
-             'quantity': 1}
+             'quantity': 1,
+             'soldBy': 'pound'}
         ],
         'notes': 'I like noodles'
     }
@@ -324,9 +366,14 @@ if __name__ == "__main__":
         'name': 'toast',
         'ingredients': [
             {'ingredient_name': 'bread',
-             'quantity': 1},
+             'quantity': 1,
+             'soldBy': 'unit'},
             {'ingredient_name': 'butter',
-             'quantity': 1}
+             'quantity': 1,
+             'soldBy': 'unit'},
+            {'ingredient_name': 'garlic',
+             'quantity': 1,
+             'soldBy': 'pound'}
         ],
         'notes': 'I like toast even more'
     }
