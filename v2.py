@@ -40,29 +40,27 @@ class ScrollFrame(Frame):
         self.grid(column=column, row=row, sticky=(N, S, E, W))
         self.grid_propagate(False)
 
-        # Setting up mouse wheel functionality
-        # self.bind('<Enter>', self._bound_to_mousewheel)
-        # self.bind('<Leave>', self._unbound_to_mousewheel)
-
         # Child canvas
         self.canvas = Canvas(self, height=1000, width=280, scrollregion=(0, 0, 280, 2000))
         self.canvas.grid(column=0, row=0, sticky=(N, S, E, W))
-        # self.canvas.config(background='green')
-        # self.canvas.columnconfigure(0, minsize=270)
-        # self.canvas.rowconfigure(0, minsize=2000)
+        self.canvas.config(background='green')
+        self.canvas.columnconfigure(0, minsize=270)
+        self.canvas.rowconfigure(0, minsize=2000)
         self.canvas.grid_propagate(False)
-        self.canvas.bind('<Button-1>', self.hide)
+        self.canvas.bind('<Enter>', self._bound_to_mousewheel)
+        self.canvas.bind('<Leave>', self._unbound_to_mousewheel)
+        self.canvas.bind('<Button-1>', lambda event: print(event.x, event.y))
 
         # Canvas child frame
         self.canvas_frame = Frame(self.canvas, height=1000, width=280)
+        self.canvas_frame.bind('<Enter>', self._bound_to_mousewheel)
+        self.canvas_frame.bind('<Leave>', self._unbound_to_mousewheel)
         #self.canvas_frame.grid_propagate(False)
         canvas_x = self.canvas.canvasx(0)
         canvas_y = self.canvas.canvasy(0)
         self.ret_val = self.canvas.create_window((canvas_x, canvas_y), window=self.canvas_frame, anchor='nw')
         self.frame_hidden = False
 
-        # self.canvas_frame.bind('<Enter>', self._bound_to_mousewheel)
-        # self.canvas_frame.bind('<Leave>', self._unbound_to_mousewheel)
         # # # Scrollbar
         scrollbar = Scrollbar(self, width=20)
         scrollbar.grid(column=1, row=0, sticky=(N, S))
@@ -71,26 +69,15 @@ class ScrollFrame(Frame):
 
     def _bound_to_mousewheel(self, event):
         print('bound')
-        self.canvas_frame.bind('<MouseWheel>', self._on_mousewheel)
+        event.widget.bind('<MouseWheel>', self._on_mousewheel)
 
     def _unbound_to_mousewheel(self, event):
         print('unbound')
-        self.canvas_frame.unbind_all('<MouseWheel>')
+        event.widget.unbind('<MouseWheel>')
 
     def _on_mousewheel(self, event):
         #print('here')
         self.canvas.yview_scroll(int(-1*(event.delta/120)), 'units')
-
-
-
-    def hide(self, event):
-        print('in hide')
-        if self.frame_hidden:
-            self.frame_hidden = False
-            self.canvas.itemconfig(self.ret_val, state='normal')
-        else:
-            self.frame_hidden = True
-            self.canvas.itemconfig(self.ret_val, state='hidden')
 
 
 class SelectMenu:
@@ -105,19 +92,13 @@ class SelectMenu:
         self.recipe_displayframe = DisplayScrollFrame(recipes, 1, 0, root_widget, height=1000, width=700)
         # Setting one-way communication method (left side frame -> right side frame)
         self.recipes_scrollframe.displayrecipe = self.recipe_displayframe.makevisible
-        # self.right_frame = Frame(root_widget, height=1000, width=700)
-        # self.right_frame.config(background='blue')
-        # self.right_frame.grid(column=1, row=0, sticky=(N, S, E, W))
-
+        self.right_frame = Frame(root_widget, height=1000, width=700)
 
         # Root widget settings
         self.root_widget.columnconfigure(0, weight=0, minsize=300)
         self.root_widget.columnconfigure(1, weight=1, minsize=700)
         self.root_widget.minsize(1000, 800)
         self.root_widget.after(1, self.frame_resize)
-
-    def update_displayed_recipe(self ):
-        ...
 
     def frame_resize(self):
         left_height = self.root_widget.winfo_height()
@@ -235,15 +216,14 @@ class SelectScreenRecipeFrame:
         self.label.config(background='light blue')
 
     def _bound_to_mousewheel(self, event):
-        print('bound')
+        #print('bound')
         event.widget.bind('<MouseWheel>', self._on_mousewheel)
 
     def _unbound_to_mousewheel(self, event):
-        print('unbound')
+        #print('unbound')
         event.widget.unbind_all('<MouseWheel>')
 
     def _on_mousewheel(self, event):
-        print('here')
         self.recipe_scrollframe.canvas.yview_scroll(int(-1*(event.delta/120)), 'units')
 
 class DisplayScrollFrame(ScrollFrame):
@@ -274,6 +254,7 @@ class DisplayScrollFrame(ScrollFrame):
             self.display_frames[recipe_name] = new_frame
 
     def makevisible(self, recipe_name: str):
+        print('in make visible')
         if self.displayedframe is not None:
             self.displayedframe.grid_remove()
         self.displayedframe = self.display_frames[recipe_name]
@@ -305,6 +286,7 @@ class SelectScreenRecipeDisplayFrame(Frame):
         self.textbox = Text(self, height=50, width=50)
         self.textbox.insert('1.0', recipe['notes'])
         self.textbox.grid(sticky=W)
+        self.textbox.config(state='disabled')
         # Placeholder for the text input widget
         self.grid_remove()  # Frame is hidden unless the recipe is been clicked
 
@@ -410,6 +392,34 @@ if __name__ == "__main__":
             recurse(child)
     root.bind('f', on_demand)
 
+    root.bind_all('<Enter>', lambda event: print(event.widget))
+    
+    # top_level = root.winfo_toplevel()
+    # drop_menu = Menu(top_level)
+    # # drop_menu.config(tearoff=0)
+    # # top_level['menu'] = drop_menu      # These two lines are the same
+    # top_level.config(menu=drop_menu)    # These two lines are the same
+    #
+    # submenu = Menu(drop_menu, relief=RAISED)
+    # submenu.config(tearoff=0)
+    # drop_menu.add_cascade(label='File', underline=0, menu=submenu)
+    # submenu.add_command(label='about', command=lambda: print('hi'))
+    # submenu.add_command(label='NEXT', command=lambda: print('next'))
+
+
+
+    # mb = Menubutton(root, text='yoyoma', relief='raised')
+    # mb.grid()
+    #
+    # new_menu = Menu(mb, tearoff=0)
+    # mb['menu'] = new_menu
+    #
+    # mayovar = IntVar()
+    # ketvar = IntVar()
+    # new_menu.add_checkbutton(label='mayo', variable=mayovar)
+    # new_menu.add_checkbutton(label='ketchup', variable=ketvar)
+
     select_menu = SelectMenu(root, recipes)
+
 
     root.mainloop()
