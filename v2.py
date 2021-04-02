@@ -1,31 +1,46 @@
 """
 
-    How to handle window sizing? Just hardcode values for now and worry about that later.
-
-
     columnconfigure(minsize=) Modifies the minimum width
     rowconfigure(minsize=) modifies the minimum height
 
+    Set hand coded widget sizing depending on their contents e.g. "soldBy" label needs to be larger when value is
+    "pound" compared to "unit".
 
-    Gotta use canvas.create_window in order to get the desired scrolling action.
+    Two Things:
+
+    1) Widget Sizing
+    2) Handling new/updated recipes
+        .grid_forget recipeframes and displayframes, delete old ones of the updated recipe
+        and then create new ones.
+
+        New Recipe: The two ScrollFrame's will have methods to add a recipe.
+                    RecipeScrollFrame will forget and then regrid the recipe frames so that they are alphabetical
+                    DisplayScrollFrame just needs to instantiate it's own.
+
+        Updated recipe:  SelectScreenRecipeFrame saves the recipe_name, so we can find the updated recipe on the right
+                         side.
+                         Right side could get the recipe_label name from the right side.
 
 
-
-    Need to add a configure binding to adjust widgets to the root window when it exceeds the minimum dimensions.
-
-
-
-    Need to address widget sizing. Should rewrite what I've got to be cleaner.
+                         Alternatively, both sides could jsut keep a map of their displayed screen objects keyed
+                         on name and painlessly update things that way.
 
 
-    Control variables to propagate recipe edits?
-
+        Deleted recipe:  use the aforementioned mapping keyed to recipe name and just .grid_destroy()
 """
 
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
 
+
+def propagate_binding(root_widget, sequence: str, fnx):
+
+    print('I AM HERE', root_widget)
+    children = root_widget.winfo_children()
+    for child_widget in children:
+        child_widget.bind(sequence, fnx)
+        propagate_binding(child_widget, sequence, fnx)
 
 class ScrollFrame(Frame):
     """
@@ -39,12 +54,14 @@ class ScrollFrame(Frame):
         self.parent = parent
         self.grid(column=column, row=row, sticky=(N, S, E, W))
         self.grid_propagate(False)
+        self.columnconfigure(0, weight=1)
 
         # Child canvas
         self.canvas = Canvas(self, height=1000, width=280, scrollregion=(0, 0, 280, 2000))
         self.canvas.grid(column=0, row=0, sticky=(N, S, E, W))
         self.canvas.config(background='green')
         self.canvas.columnconfigure(0, minsize=270)
+        #self.canvas.columnconfigure(0, weight=1)
         self.canvas.rowconfigure(0, minsize=2000)
         self.canvas.grid_propagate(False)
         self.canvas.bind('<Enter>', self._bound_to_mousewheel)
@@ -52,20 +69,23 @@ class ScrollFrame(Frame):
         self.canvas.bind('<Button-1>', lambda event: print(event.x, event.y))
 
         # Canvas child frame
-        self.canvas_frame = Frame(self.canvas, height=1000, width=280)
+        self.canvas_frame = Frame(self.canvas, height=1000, width=380)
         self.canvas_frame.bind('<Enter>', self._bound_to_mousewheel)
         self.canvas_frame.bind('<Leave>', self._unbound_to_mousewheel)
+        self.canvas_frame.columnconfigure(0, weight=1)
         #self.canvas_frame.grid_propagate(False)
         canvas_x = self.canvas.canvasx(0)
         canvas_y = self.canvas.canvasy(0)
         self.ret_val = self.canvas.create_window((canvas_x, canvas_y), window=self.canvas_frame, anchor='nw')
-        self.frame_hidden = False
 
         # # # Scrollbar
         scrollbar = Scrollbar(self, width=20)
         scrollbar.grid(column=1, row=0, sticky=(N, S))
         scrollbar.config(command=self.canvas.yview)
         self.canvas.config(yscrollcommand=scrollbar.set)
+
+        # Padding to make the drop down menu's more obvious/distinct
+        self.config(pady=5)
 
     def _bound_to_mousewheel(self, event):
         print('bound')
@@ -100,6 +120,8 @@ class SelectMenu:
         self.root_widget.minsize(1000, 800)
         self.root_widget.after(1, self.frame_resize)
 
+
+
     def frame_resize(self):
         left_height = self.root_widget.winfo_height()
         #left_width = int(the_root.winfo_width() * .8)
@@ -130,9 +152,7 @@ class RecipesScrollFrame(ScrollFrame):
         self.active_select_frame = None
         self.displayrecipe = None  # A method to communicate with the right frame. Is updated by SelectMenu.
 
-        self.canvas.config(background='green')
-        self.canvas.columnconfigure(0, minsize=270)
-        self.canvas.rowconfigure(0, minsize=2000)
+        self.canvas.config(background='brown')
 
     def build_list(self):
         bg = 'light gray'
@@ -226,6 +246,7 @@ class SelectScreenRecipeFrame:
     def _on_mousewheel(self, event):
         self.recipe_scrollframe.canvas.yview_scroll(int(-1*(event.delta/120)), 'units')
 
+
 class DisplayScrollFrame(ScrollFrame):
     """
         Presents the right-hand side of the selection screen. Displays the recipe information
@@ -250,6 +271,7 @@ class DisplayScrollFrame(ScrollFrame):
         ...
         for recipe in self.recipes:
             new_frame = SelectScreenRecipeDisplayFrame(recipe, self.canvas_frame, height=1000, width=700)
+            new_frame.add_scrolling(super()._bound_to_mousewheel)
             recipe_name = recipe['name']
             self.display_frames[recipe_name] = new_frame
 
@@ -287,13 +309,20 @@ class SelectScreenRecipeDisplayFrame(Frame):
         self.textbox.insert('1.0', recipe['notes'])
         self.textbox.grid(sticky=W)
         self.textbox.config(state='disabled')
-        # Placeholder for the text input widget
+
         self.grid_remove()  # Frame is hidden unless the recipe is been clicked
 
-        self.bind('<Button-1>', lambda event: print(event.x, event.y))
+        self.top_widgets = [self, self.recipe_label, self.ingredient_header, self.note_label, self.textbox]
+
+    def add_scrolling(self, scrollfnx):
+        """
+            Should be called by instantiating context
+        """
+
+        for widget in self.top_widgets:
+            widget.bind('<Enter>', scrollfnx)
 
     def ingredients(self, recipe):
-        ...
         ingredient_frames = []
         for index, ingredient in enumerate(recipe['ingredients']):
             # Frame first
@@ -393,18 +422,20 @@ if __name__ == "__main__":
     root.bind('f', on_demand)
 
     root.bind_all('<Enter>', lambda event: print(event.widget))
-    
-    # top_level = root.winfo_toplevel()
-    # drop_menu = Menu(top_level)
-    # # drop_menu.config(tearoff=0)
-    # # top_level['menu'] = drop_menu      # These two lines are the same
-    # top_level.config(menu=drop_menu)    # These two lines are the same
-    #
-    # submenu = Menu(drop_menu, relief=RAISED)
-    # submenu.config(tearoff=0)
-    # drop_menu.add_cascade(label='File', underline=0, menu=submenu)
-    # submenu.add_command(label='about', command=lambda: print('hi'))
-    # submenu.add_command(label='NEXT', command=lambda: print('next'))
+
+    top_level = root.winfo_toplevel()
+    drop_menu = Menu(top_level)
+    # drop_menu.config(tearoff=0)
+    # top_level['menu'] = drop_menu      # These two lines are the same
+    top_level.config(menu=drop_menu)    # These two lines are the same
+
+    submenu = Menu(drop_menu, relief=RAISED)
+    submenu.config(tearoff=0)
+    drop_menu.add_cascade(label='File', underline=0, menu=submenu)
+    submenu.add_command(label='New Recipe', command=lambda: print('Building new recipe'))
+    submenu.add_command(label='Load Cart', command=lambda: print('cart loaded'))
+    submenu.add_command(label='Quit', command=lambda: exit(0))
+
 
 
 
@@ -421,5 +452,8 @@ if __name__ == "__main__":
 
     select_menu = SelectMenu(root, recipes)
 
+    # Propagating mouse wheel <Enter>, <Leave> behavior to all ScrollFrame children
+    root.after(10, propagate_binding, select_menu.recipe_displayframe, '<Enter>', select_menu.recipe_displayframe._bound_to_mousewheel)
+    root.after(10, propagate_binding, select_menu.recipe_displayframe, '<Leave>', select_menu.recipe_displayframe._unbound_to_mousewheel)
 
     root.mainloop()
