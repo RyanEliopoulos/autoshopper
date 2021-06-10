@@ -11,6 +11,9 @@ class DBInterface:
 
     def _execute_query(self, sql_string: str
                        , parameters: tuple = None) -> tuple[int, str]:
+        """
+        Wrapper for cursor.execute
+        """
         try:
             if parameters is None:
                 self.db_cursor.execute(sql_string)
@@ -86,10 +89,11 @@ class DBInterface:
         :return: int: -1 upon query error.
                  tuple: Failure message
                  ||
-                 int: 0, successfully retrieved
-                      OR no token exists
+                 int: 0, successfully retrieved a token
                  tuple: (str: refresh_token, float: unix_timestamp)
-                        OR (None,)
+                 ||
+                 int: 1, No token found
+                 tuple: (None,)
         """
         sqlstring = """ SELECT * FROM api_token
                         WHERE token_id = (?)
@@ -99,7 +103,7 @@ class DBInterface:
             return ret[0], (ret[1],)
         resultrow: tuple = self.db_cursor.fetchone()
         if resultrow is None:
-            return 0, (None,)
+            return 1, (None,)
         refresh_token: str = resultrow[1]
         timestamp: float = resultrow[2]
         return 0, (refresh_token, timestamp)
