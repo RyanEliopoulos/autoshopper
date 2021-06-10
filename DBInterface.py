@@ -50,7 +50,7 @@ class DBInterface:
                         refresh_token STRING NOT NULL,
                         timestamp REAL NOT NULL)
                     """
-        ret = self._execute_query(sqlstring)
+        ret: tuple = self._execute_query(sqlstring)
         if ret[0] != 0:
             return ret
         # Creating recipe tables
@@ -92,7 +92,7 @@ class DBInterface:
         sqlstring = """ SELECT * FROM api_token
                         WHERE token_id = (?)
                     """
-        ret = self._execute_query(sqlstring, (1,))
+        ret: tuple = self._execute_query(sqlstring, (1,))
         if ret[0] != 0:
             return ret[0], (ret[1],)
         resultrow: tuple = self.db_cursor.fetchone()
@@ -113,7 +113,7 @@ class DBInterface:
                                 FROM api_token
                                 WHERE token_id = (?)
                          """
-        ret = self._execute_query(sqlstring, (1,))
+        ret: tuple = self._execute_query(sqlstring, (1,))
         if ret[0] != 0:
             return ret
         rowdata: tuple = self.db_cursor.fetchone()
