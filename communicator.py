@@ -1,8 +1,10 @@
 """
-    NOTE:  This program does not check for the edge case where the current process has outlived the months-long lifespan
-            of a refresh token. After 6 months of idling the process may attempt to update the refresh token with
-            an expired refresh token. I absolve myself of this responsibility.
+    Ultimately want program to function even if it can't connect/access the API.
+    Set a status attribute to reflect ability, then check in contrller after instantiating?
+
+    Should token management be broken into an "Authenticator" class?
 """
+
 
 import os
 import requests
@@ -14,226 +16,51 @@ import urllib.parse
 import time
 import json
 import datetime
+import DBInterface
+import Logger
 
 
 class Communicator:
-    # Thought I'd be clever with an abstract base class.. Not sure it was clever now.
+    """
+        The DBInterface reference allows Communicator to retrieve
+        existing tokens and keep the refresh token updated.
+    """
+    def __init__(self, db_interface: DBInterface):
+        # API details
+        self.api_base: str = 'https://api.kroger.com/v1/'
+        self.api_token: str = 'connect/oauth2/token'
+        self.api_authorize: str = 'connect/oauth2/authorize'  # "human" consent w/ redirect endpoint
+        self.redirect_uri: str = 'http://localhost:8000'
+        self.location_id: str = os.getenv('kroger_api_location_id')
+        # App credentials
+        self.client_id = os.getenv('kroger_app_client_id')
+        self.client_secret = os.getenv('kroger_app_client_secret')
+        # Token management
+        self.db_interface: DBInterface = db_interface
+        tokens: dict = self.init_tokens()
+        self.access_token: str = tokens['access_token']
+        self.access_token_timestamp: float = tokens['access_timestamp']
+        self.refresh_token: str = tokens['refresh_token']
+        self.refresh_token_timestamp: float = tokens['refresh_timestamp']
 
-    # App credentials
-    client_id: str = os.getenv('kroger_app_client_id')
-    client_secret: str = os.getenv('kroger_app_client_secret')
-
-    # API credentials (stand in)
-    access_token = None
-    access_token_timestamp = datetime.datetime(1990, 1, 1, 1, 1)
-    # API urls
-    api_base: str = 'https://api.kroger.com/v1/'
-    api_token: str = 'connect/oauth2/token'
-    api_authorize: str = 'connect/oauth2/authorize'  # "human" consent w/ redirect endpoint
-    # Pagination page
-    pagination_index = 1
-
-    # Tenney road Fred Meyer
-    location_id = '70100460'
-    redirect_uri: str = 'http://localhost:8000'
-
-    def __init__(self):
-        raise NotImplementedError('Should never instantiate this class')
-
-    def get_tokens(self):
+    def _get_authcode(self) -> str:
         """
-            Different implementations will account for the client_credentials and authorization_code
-            grant types.
+        Requires Selenium to emulate customer input, authorizing the app to do it's thing.
+        Kroger includes the authorization code as a param in the redirect url.
+
+        Really need a good way to pause until the page is fully loaded. For now we just pause for 12
+        seconds. That's not great.
         """
-        raise NotImplementedError('Subclass should implement this')
-
-    def token_refresh(self):
-        """
-            Implemented by CustomerCommunicator
-        :return:
-        """
-        raise NotImplementedError
-
-    def valid_token(self) -> bool:
-        """
-            Evaluates the access token timestamp for freshness. Spec says 30m minutes. Will enforce 25 minutes.
-
-            The base class variable "access_token_timestamp" will be overwritten by the CustomerCommunicator variable.
-        :return:
-        """
-
-        now = datetime.datetime.now().timestamp()
-        diff_seconds = self.access_token_timestamp - now
-        diff_minutes = diff_seconds / 60
-
-        if diff_minutes >= 25:
-            return False
-        return True
-
-    def get_productinfo(self, product_id: str) -> dict:
-        """
-            Pulls product info from the API and returns json/dict format of the response for caller to sort out
-        :return:
-        """
-        if not self.valid_token():
-            self.token_refresh()
-
-        # Preparing request
-        headers = {
-            'Accept': 'application/json'
-            , 'Authorization': 'Bearer ' + self.access_token
-        }
-        query_params = {
-            'filter.locationId': Communicator.location_id
-        }
-        encoded_params = urllib.parse.urlencode(query_params)
-        target_url = f'{Communicator.api_base}products/{product_id}?{encoded_params}'
-
-        # Requesting info
-        req = Communicator.request('get', target_url, headers=headers)
-        if req.status_code != 200:
-            print(f'Error retrieving info for product {product_id}')
-            print(req.text)
-        req = req.json()
-        return req
-
-    def product_search(self, search_term, page_size: int = 50, direction: str = None):
-        """
-            Important to note this method currently has the fulfillment method hardcoded to curbside pickup
-
-        :param search_term:   Must be at least 3 characters long.
-        :param direction: either 'next' or 'previous'. Increments/decrements the pagination index relative to the
-                            value of the previous product_search method call.  Invoking method without a direction
-                            value resets the pagination index to default = 1
-        :param page_size: How many results per page the API will reply with
-        :return:  Results from the API query
-        """
-
-        if not self.valid_token():
-            self.token_refresh()
-
-        if direction == 'next':
-            self.pagination_index += page_size
-            if self.pagination_index > 1000:  # Can't exceed 1k or API cries
-                self.pagination_index -= page_size
-        elif direction == 'previous':
-            self.pagination_index -= page_size
-            if self.pagination_index < 1:  # Can't be below 1 or API cries
-                self.pagination_index = 1
-        elif direction is None:
-            self.pagination_index = 1
-
-        url = self.api_base + 'products'
-        headers = {
-            'Accept': 'application/json'
-            , 'Authorization': f'Bearer {self.access_token}'
-        }
-        params = {
-            'filter.term': search_term
-            , 'filter.locationId': self.location_id
-            , 'filter.limit': page_size  # Number of items the response may contain
-            , 'filter.start': self.pagination_index  # Result index where the response with begin reading
-            , 'filter.fullfillment': 'csp'  # curbside pickup
-        }
-        req = self.request('get', url=url, headers=headers, params=params)
-
-        if req.status_code != 200:
-            print('Something went wrong with the product search')
-            print(req.status_code)
-            print(req.text)
-        req = req.json()
-        return req
-
-    @staticmethod
-    def request(verb, url, headers=None, data=None, params=None, auth=None, json=None):
-        """
-            Centralized place for making calls to the requests library.
-            Useful idea? Verdict inconclusive
-        """
-        # Pulling appropriate request method
-        str_to_req = {
-            'post': requests.post
-            , 'get': requests.get
-            , 'put': requests.put
-        }
-        req = str_to_req[verb]
-        response = req(url, headers=headers, data=data, params=params, auth=auth, json=json)
-
-        return response
-
-
-########################################################################################################################
-
-
-class CustomerCommunicator(Communicator):
-
-    def __init__(self):
-        # Customer credentials
-        self.username = os.getenv('kroger_username')
-        self.password = os.getenv('kroger_password')
-        # API variables
-        self.access_token = None
-        access_token_timestamp = datetime.datetime(1990, 1, 1, 1, 1)  # Temp stand in. Epoch seconds.
-        self.refresh_token = None
-        self.authorization_code = None
-        # Pagination index
-        self.pagination_index = 1  # Helps product_search track state in case pagination is required
-
-    def stage_tokens(self):
-        """
-            Reads a {'refresh_token': <>, 'timestamp': <epoch seconds>} object from disk, if it exists,
-            evaluating the timestamp for validity.  Retrieves new access token if so, else engages human auth
-            for a new access token/refresh token pair.
-
-            Meant to be called at boot so that all methods querying the API can ask for a new token, if necessary.
-        """
-
-        try:
-            # Attempting to load {'token': <>, 'timestamp': <epoch>} object
-            with open('refresh_token.json', 'r') as token_file:
-                token_info = json.load(token_file)
-
-            # Evaluating token for freshness
-            # Refresh tokens are good for 6 months as of 2/24/2021
-            self.refresh_token = token_info['refresh_token']
-            timestamp = token_info['timestamp']  # Epoch timestamp
-            now = datetime.datetime.now().timestamp()
-            diff_seconds = now - timestamp
-            diff_minutes = diff_seconds / 60
-            diff_hours = diff_minutes / 60
-            diff_days = diff_hours / 24
-
-            if diff_days < 150:
-                # Token is still good.
-                # Retrieving new access and refresh tokens
-                self.token_refresh()
-            else:
-                # Declaring refresh token stale.
-                # Will need user auth to retrieve new tokens.
-                self.get_tokens()
-        except FileNotFoundError:
-            # Tokens not saved to disk
-            # Querying API with human credentials instead
-            self.get_tokens()
-
-    def _get_authcode(self):
-        """
-            Requires Selenium to emulate customer input, authorizing the app to do it's thing.
-            Kroger includes the authorization code as a param in the redirect url.
-
-            Really need a good way to pause until the page is fully loaded. For now we just pause for 12
-            seconds. That's not great.
-        """
-        # Preparing URL
-        params = {
+        # Preparing URl
+        params: dict = {
             'scope': 'profile.compact cart.basic:write product.compact'
-            , 'client_id': Communicator.client_id
-            , 'redirect_uri': Communicator.redirect_uri
+            , 'client_id': self.client_id
+            , 'redirect_uri': self.redirect_uri
             , 'response_type': 'code'
             , 'state': 'oftheunion'
         }
         encoded_params = urllib.parse.urlencode(params)
-        target_url = Communicator.api_base + Communicator.api_authorize + '?' + encoded_params
+        target_url = self.api_base + self.api_authorize + '?' + encoded_params
 
         # Navigating with Selenium
         browser = webdriver.Firefox()
@@ -242,9 +69,9 @@ class CustomerCommunicator(Communicator):
         # Impersonating human authorization
         username_field = browser.find_element(By.ID, 'username')
         password_field = browser.find_element(By.ID, 'password')
-        username_field.send_keys(self.username)
+        username_field.send_keys(os.getenv('kroger_username'))
         time.sleep(1)
-        password_field.send_keys(self.password)
+        password_field.send_keys(os.getenv('kroger_password'))
         time.sleep(1)
         password_field.send_keys(Keys.ENTER)
 
@@ -253,51 +80,80 @@ class CustomerCommunicator(Communicator):
         # Retrieving auth code from the redirect URL
         full_url = browser.current_url
         pattern = re.compile(r'\?code=(.*)&')
-        authorization_code = pattern.search(full_url).group(1)
+        authorization_code: str = pattern.search(full_url).group(1)
 
         if not authorization_code:
+            Logger.Logger.log_error('Error retrieving authorization code')
             print("Error retrieving authorization code")
             print('full_url: ', full_url)
-            exit(3)
+            exit(1)
 
-        self.authorization_code = authorization_code
+        return authorization_code
 
-    def get_tokens(self):
+    def valid_token(self, timestamp: float, token_type: str) -> bool:
         """
-            Used in the event that no valid refresh tokens are available to generate new access and refresh tokens.
+        Token validity check
+        Access tokens have 30 minute expiration
+        Refresh tokens have 6 month expiration
+        :param timestamp: Unix epoch
+        :param token_type: <access>, <refresh>
         """
+        now: float = datetime.datetime.now().timestamp()
+        diff_seconds: float = now - timestamp
+        diff_minutes = diff_seconds / 60
+        if token_type == 'access':
+            if diff_minutes >= 25:
+                return False
+            return True
+        elif token_type == 'refresh':
+            diff_hours = diff_minutes / 60
+            diff_days = diff_hours / 24
+            if diff_days >= 140:  # ~5 months
+                return False
+            return True
 
-        print("Please wait while we retrieve the API tokens..")
-        self._get_authcode()
-        headers = {
+    def tokens_from_authcode(self) -> tuple[int, tuple]:
+        """
+        Emulates human input to kick start API access.
+        Commits new refresh token to DB
+        :return:  (int: 0 upon success, else -1,
+                   tuple(access_token, access_timestamp, refresh_token, refresh_timestamp) success, else (None,)
+        """
+        authcode: str = self._get_authcode()
+        headers: dict = {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
-        data = {
+        data: dict = {
             'grant_type': 'authorization_code'
-            , 'redirect_uri': Communicator.redirect_uri
+            , 'redirect_uri': self.redirect_uri
             , 'scope': 'profile.compact cart.basic:write product.compact'
-            , 'code': self.authorization_code
+            , 'code': authcode
         }
-        target_url = Communicator.api_base + Communicator.api_token
-        req = Communicator.request('post', target_url, headers=headers, data=data,
-                                   auth=(Communicator.client_id, Communicator.client_secret))
+        target_url: str = self.api_base + self.api_token
+        req = requests.post(target_url, headers=headers, data=data,
+                            auth=(self.client_id, self.client_secret))
         if req.status_code != 200:
+            Logger.Logger.log_error('Error retrieving tokens with auth code --- ' + req.text)
             print('error retrieving tokens with authorization_code')
             print(req.text)
-            exit(4)
-        print("..Tokens retrieved")
+            return -1, (req.text,)
         req = req.json()
-        self.access_token = req['access_token']
-        self.access_token_timestamp = datetime.datetime.now().timestamp()
-        self.refresh_token = req['refresh_token']
-
-        # Writing refresh token to disk
-        self.save_token()
+        access_timestamp: float = datetime.datetime.now().timestamp()
+        access_token: str = req['access_token']
+        refresh_token: str = req['refresh_token']
+        refresh_timestamp: float = access_timestamp
+        print("..Tokens retrieved. Writing to database")
+        ret = self.db_interface.update_token(refresh_token, refresh_timestamp)
+        if ret[0] != 0:
+            Logger.Logger.log_error('Error updating refresh token from authcode in db' + ret[1])
+            exit(1)
+        return 0, (access_token, access_timestamp, refresh_token, refresh_timestamp)
 
     def token_refresh(self):
         """
-            Pulls new access and refresh tokens using an existing, valid refresh token.
-            Up to caller to verify the refresh token is valid.
+        Pulls new access and refresh tokens using an existing, valid refresh token.
+        Up to caller to verify the refresh token is valid.
+        :return:
         """
         # Prepping request
         headers = {
@@ -307,91 +163,71 @@ class CustomerCommunicator(Communicator):
             'grant_type': 'refresh_token'
             , 'refresh_token': self.refresh_token
         }
-        target_url = Communicator.api_base + Communicator.api_token
-
+        target_url: str = self.api_base + self.api_token
         # Evaluating response
-        req = Communicator.request('post', target_url, headers=headers, data=data,
-                                   auth=(Communicator.client_id, Communicator.client_secret))
+        req = requests.post(target_url, headers=headers, data=data,
+                            auth=(self.client_id, self.client_secret))
         if req.status_code != 200:
+            Logger.Logger.log_error('Failed to refresh tokens in token_refresh()' + req.text)
             print("Error refreshing access token")
             print(req.text)
-            exit(5)
+            exit(1)
         req = req.json()
-
         # Updating token variables
         self.access_token = req['access_token']
         self.access_token_timestamp = datetime.datetime.now().timestamp()
         self.refresh_token = req['refresh_token']
-        # Writing refresh token to disk
-        self.save_token()
+        self.refresh_token_timestamp = self.access_token_timestamp
+        self.db_interface.update_token(self.refresh_token, self.refresh_token_timestamp)
 
-    def save_token(self):
+    def init_tokens(self) -> dict:
         """
-            Saves the fresh token to disk along with a timestamp in epoch seconds.
-            Called by get_tokens() and token_refresh()
+        Fetches the access and refresh tokens from disk or from oauth flow
+        :return {'access_token: <>,
+                  'access_token_timestamp: <> ,
+                  'refresh_token': <>,
+                  'refresh_token_timestamp: <>}
         """
-
-        try:
-            timestamp = datetime.datetime.now().timestamp()
-            jsn_object = {'refresh_token': self.refresh_token
-                          , 'timestamp': timestamp}
-            with open('refresh_token.json', 'w+') as token_file:
-                json.dump(jsn_object, token_file)
-
-        except Exception as e:
-            print(f"Encountered error writing refresh token to disk: {e}")
-
-    def add_to_cart(self, shopping_list: list[dict]) -> bool:
-        """
-        :param shopping_list:  [{'upc': <>, 'quantity': <>}, ... ]
-        :return bool indicating success/failure
-        """
-
-        if not self.valid_token():
-            self.token_refresh()
-
-        headers = {
-            'Content-Type': 'application/x-www-form-urlencoded'
-            , 'Authorization': f'Bearer {self.access_token}'
-        }
-        data = {
-            'items': shopping_list
-        }
-        target_url = f'{Communicator.api_base}cart/add'
-        req = Communicator.request('put', target_url, headers=headers, json=data)
-        if req.status_code != 204:
-            print("error adding items to cart")
-            print(req.status_code)
-            print(req.text)
-            exit()
-
-        return True
-
-
-########################################################################################################################
-
-class AppCommunicator(Communicator):
-
-    def __init__(self):
-        self.access_token = None
-        self.pagination_index = 1  # Helps product_search track state in case pagination is required
-
-    def get_tokens(self):
-        # Staging HTTP request content
-        headers = {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
-        data = {
-            'grant_type': 'client_credentials'
-            , 'scope': 'product.compact'
-        }
-        target_url = Communicator.api_base + Communicator.api_token
-        # Making Request
-        req = Communicator.request('post', target_url, headers=headers, data=data,
-                                   auth=(Communicator.client_id, Communicator.client_secret))
-        if req.status_code != 200:
-            print('Error retrieving access tokens with client credentials..')
-            print(req.text)
+        refresh_token: str = ''
+        refresh_timestamp: float = 0.0
+        access_token: str = ''
+        access_timestamp: float = 0.0
+        # Checking for tokens on disk first
+        ret = self.db_interface.retrieve_token()
+        if ret[0] == -1:
+            # Fatal - error reading from database
+            Logger.Logger.log_error('Error reading tokens from DB' + ret[1])
+            print('Error reading tokens from DB')
             exit(1)
-        req = req.json()
-        self.access_token = req['access_token']
+        elif ret[0] == 1:
+            # No tokens in the database
+            tokens: tuple = self.tokens_from_authcode()
+            access_token = tokens[1][0]
+            access_timestamp = tokens[1][1]
+            refresh_token = tokens[1][2]
+            refresh_timestamp = tokens[1][3]
+        elif ret[0] == 0:
+            # Retrieved refresh token
+            refresh_token = ret[1][0]
+            refresh_timestamp = ret[1][1]
+            if self.valid_token(float(refresh_timestamp), token_type='refresh'):
+                # Exchanging refresh token
+                self.refresh_token = refresh_token
+                self.token_refresh()  # updates token attributes
+                access_token = self.access_token
+                access_timestamp = self.access_token_timestamp
+                refresh_token = self.refresh_token
+                refresh_timestamp = self.refresh_token_timestamp
+            else:
+                tokens: tuple = self.tokens_from_authcode()
+                access_token = tokens[1][0]
+                access_timestamp = tokens[1][1]
+                refresh_token = tokens[1][2]
+                refresh_timestamp = tokens[1][3]
+        ret_dict = {
+            'access_token': access_token,
+            'access_timestamp': access_timestamp,
+            'refresh_token': refresh_token,
+            'refresh_timestamp': refresh_timestamp
+        }
+        return ret_dict
