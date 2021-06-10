@@ -1,6 +1,6 @@
 """
     Ultimately want program to function even if it can't connect/access the API.
-    Set a status attribute to reflect ability, then check in contrller after instantiating?
+    Current exit() use will need to go.
 
     Should token management be broken into an "Authenticator" class?
 """
@@ -153,7 +153,7 @@ class Communicator:
         """
         Pulls new access and refresh tokens using an existing, valid refresh token.
         Up to caller to verify the refresh token is valid.
-        :return:
+        Updates instance variables directly.
         """
         # Prepping request
         headers = {
@@ -186,7 +186,8 @@ class Communicator:
 
     def init_tokens(self) -> dict:
         """
-        Fetches the access and refresh tokens from disk or from oauth flow
+        Acquires valid access token and refresh tokens
+        however necessary.
         :return {'access_token: <>,
                   'access_token_timestamp: <> ,
                   'refresh_token': <>,
