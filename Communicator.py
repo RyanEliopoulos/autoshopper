@@ -238,7 +238,7 @@ class Communicator:
 
     def add_to_cart(self, shopping_list: list[dict]) -> bool:
         """
-        :param shopping_list:  [{'upc': <>, 'quantity': <>}, ... ]
+        :param shopping_list:  [{'upc': <>: str, 'quantity': <>: int}, ... ]
         :return bool indicating success/failure
         """
         if not self.valid_token(self.access_token_timestamp, 'access'):
