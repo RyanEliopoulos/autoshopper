@@ -62,14 +62,6 @@ class DBInterface:
         ret = self._execute_query(sqlstring)
         if ret[0] != 0:
             return ret
-        sqlstring = """ CREATE TABLE recipe_steps (
-                        step_id INT PRIMARY KEY,
-                        recipe_id INTEGER NOT NULL,
-                        FOREIGN KEY(recipe_id) REFERENCES recipes(recipe_id))
-                    """
-        ret = self._execute_query(sqlstring)
-        if ret[0] != 0:
-            return ret
         sqlstring = """ CREATE TABLE recipe_ingredients (
                         ingredient_id INT PRIMARY KEY,
                         ingredient_name STRING NOT NULL,
