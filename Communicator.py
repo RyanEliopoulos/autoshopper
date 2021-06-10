@@ -178,7 +178,11 @@ class Communicator:
         self.access_token_timestamp = datetime.datetime.now().timestamp()
         self.refresh_token = req['refresh_token']
         self.refresh_token_timestamp = self.access_token_timestamp
-        self.db_interface.update_token(self.refresh_token, self.refresh_token_timestamp)
+        ret = self.db_interface.update_token(self.refresh_token, self.refresh_token_timestamp)
+        if ret[0] != 0:
+            Logger.Logger.log_error('Error writing new refresh token to DB ' + ret[1])
+            Logger.Logger.log_error('Refresh token is:' + self.refresh_token)
+            exit(1)
 
     def init_tokens(self) -> dict:
         """
@@ -231,3 +235,29 @@ class Communicator:
             'refresh_timestamp': refresh_timestamp
         }
         return ret_dict
+
+    def add_to_cart(self, shopping_list: list[dict]) -> bool:
+        """
+        :param shopping_list:  [{'upc': <>, 'quantity': <>}, ... ]
+        :return bool indicating success/failure
+        """
+        if not self.valid_token(self.access_token_timestamp, 'access'):
+            self.token_refresh()
+
+        headers: dict = {
+            'Content-Type': 'application/x-www-form-urlencoded'
+            , 'Authorization': f'Bearer {self.access_token}'
+        }
+        data: dict = {
+            'items': shopping_list
+        }
+        target_url: str = f'{self.api_base}cart/add'
+        req = requests.put(target_url, headers=headers, json=data)
+        if req.status_code != 204:
+            Logger.Logger.log_error('Error adding to cart ' + req.text)
+            print("error adding items to cart")
+            print(req.status_code)
+            print(req.text)
+            exit(1)
+
+        return True
