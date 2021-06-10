@@ -75,7 +75,9 @@ class DBInterface:
                         ingredient_name STRING NOT NULL,
                         ingredient_quantity REAL NOT NULL,
                         ingredient_unit_type STRING NOT NULL,
-                        kroger_upc STRING)
+                        kroger_upc STRING,
+                        recipe_id INTEGER NOT NULL,
+                        FOREIGN KEY(recipe_id) REFERENCES recipes(recipe_id))
                     """
         ret = self._execute_query(sqlstring)
         if ret[0] != 0:
