@@ -208,17 +208,15 @@ class DBInterface:
         """
         Pulls all recipe data and returns it as nested dictionaries
         :return: [int: -1, {'error_message': <>}]
-                 [int: 0, {<recipe_title>: {'recipe_id': <>,
+                    OR
+                 [int: 0, {<recipe_id>:    {'recipe_id': <>,
                                             'recipe_title': <>,
                                             'recipe_notes': <>,
                                             'ingredients': {'ingredient_name': {<ingredient_name>,
                                                                             'ingredient_quantity': float,
                                                                             'ingredient_unit_type': str,
                                                                             'kroger_upc': str
-                                                                            }, ...
-                                                            }
-                                            }
-                        }
+                                                                            }, ... } } }
         """
         sqlstring: str = """ SELECT 
                              r.recipe_id
@@ -246,8 +244,8 @@ class DBInterface:
                 # Initializing recipe
                 if len(recipes) > 0:
                     new_recipe = dict()
-                new_recipe_title = row['recipe_title']
-                recipes[new_recipe_title] = new_recipe
+                new_recipe_id = row['recipe_id']
+                recipes[new_recipe_id] = new_recipe
                 new_recipe['recipe_id'] = row['recipe_id']
                 new_recipe['recipe_title'] = row['recipe_title']
                 new_recipe['recipe_notes'] = row['recipe_notes']
