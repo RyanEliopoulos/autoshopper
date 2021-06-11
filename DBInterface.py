@@ -260,3 +260,19 @@ class DBInterface:
             new_recipe['ingredients'][ingredient_name] = new_ingredient
 
         return 0, recipes
+
+    def delete_recipe(self, recipe_id: int) -> tuple[int, dict]:
+        """
+        Remove the 'recipe_ingredients' and 'recipes' entries
+        for the given recipe_id
+        :return:
+        """
+        sqlstring: str = """ DELETE FROM recipe_ingredients 
+                             WHERE recipe_id = (?)
+                         """
+        ret = self._execute_query(sqlstring, (recipe_id,))
+        if ret[0] != 0:
+            Logger.Logger.log_error(f'Error deleting recipe:' + ret[1])
+            print(f'Error deleting recipe:' + ret[1])
+            return -1, {'error_message': ret[1]}
+        return 0, {'success_message': f'Deleted recipe {recipe_id}'}
