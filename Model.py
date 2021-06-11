@@ -76,6 +76,16 @@ class Model:
                 'quantity': ingredient_dict[upc]
             }
             order_list.append(tmp_dict)
+        # Rounding each float up to the nearest integer
+        for upc in order_list:
+            original_quant = upc['quantity']
+            int_quant = int(original_quant)
+            if original_quant != int_quant:
+                # Value is a float
+                upc['quantity'] = int(1 + original_quant)
+            else:
+                # Casting to int to eliminate possible floats e.g. 3.0
+                upc['quantity'] = int_quant
         return order_list
 
     def update_recipe(self):
