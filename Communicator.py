@@ -237,14 +237,13 @@ class Communicator:
         }
         return ret_dict
 
-    def add_to_cart(self, shopping_list: list[dict]) -> bool:
+    def add_to_cart(self, shopping_list: list[dict]) -> tuple[int, dict]:
         """
         :param shopping_list:  [{'upc': <>: str, 'quantity': <>: int}, ... ]
         :return bool indicating success/failure
         """
         if not self.valid_token(self.access_token_timestamp, 'access'):
             self.token_refresh()
-
         headers: dict = {
             'Content-Type': 'application/x-www-form-urlencoded'
             , 'Authorization': f'Bearer {self.access_token}'
@@ -259,6 +258,5 @@ class Communicator:
             print("error adding items to cart")
             print(req.status_code)
             print(req.text)
-            exit(1)
-
-        return True
+            return -1, {'error_message': f'Failed to load groceries: ' + req.text}
+        return 0, {'success_message': 'Successfully loaded groceries into cart'}
