@@ -1,5 +1,6 @@
 import DBInterface
 import Logger
+import copy
 
 
 class Model:
@@ -21,14 +22,17 @@ class Model:
         return ret[1]
 
     def add_recipe(self, recipe: dict) -> tuple[int, dict]:
+        """
+        Returns recipe with recipe_id and ingredient_ids added
+        """
         ret = self.db_interface.add_recipe(recipe)
         if ret[0] != 0:
             return ret
         new_recipe: dict = ret[1]
         recipe_id: int = new_recipe['recipe_id']
         self.recipes[recipe_id] = new_recipe
-        recipe_title: str = new_recipe['recipe_title']
-        return 0, {'success_message': f'Added {recipe_title}'}
+        view_copy: dict = copy.deepcopy(new_recipe)
+        return 0, view_copy
 
     def delete_recipe(self, recipe_id: int) -> tuple[int, dict]:
         ret = self.db_interface.delete_recipe(recipe_id)
