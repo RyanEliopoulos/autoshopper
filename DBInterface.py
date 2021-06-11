@@ -153,7 +153,7 @@ class DBInterface:
         """
         recipe:  {'recipe_title': str,
                   'recipe_notes': str,
-                  'ingredients': {<ingredient1>: {'quantity': float,
+                  'ingredients': {<ingredient1>: {'ingredient_quantity': float,
                                                  'ingredient_name': str,
                                                  'unit_type': str,
                                                  'kroger_upc': str},
@@ -185,7 +185,7 @@ class DBInterface:
                             VALUES (?, ?, ?, ?, ?)
                         """
             ret = self._execute_query(sqlstring, (details['ingredient_name'],
-                                                  details['quantity'],
+                                                  details['ingredient_quantity'],
                                                   details['unit_type'],
                                                   details['kroger_upc'],
                                                   new_recipe_id))
@@ -255,7 +255,7 @@ class DBInterface:
             new_ingredient['ingredient_name'] = row['ingredient_name']
             new_ingredient['ingredient_quantity'] = row['ingredient_quantity']
             new_ingredient['ingredient_unit_type'] = row['ingredient_unit_type']
-            new_ingredient['kroger_upc'] = row['kroger_upc']
+            new_ingredient['kroger_upc'] = str(row['kroger_upc'])
             ingredient_name = new_ingredient['ingredient_name']
             new_recipe['ingredients'][ingredient_name] = new_ingredient
 
