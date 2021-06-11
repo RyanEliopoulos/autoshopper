@@ -1,0 +1,74 @@
+import DBInterface
+import Logger
+
+
+class Model:
+
+    def __init__(self, db_interface: DBInterface):
+        self.db_interface: db_interface = db_interface
+        self.recipes: dict = self._get_recipes()
+        self.selected_recipes: dict = {}
+
+    def _get_recipes(self) -> dict:
+        """
+        Initialization fnx. Loads recipe data into the Model.
+        """
+        ret = self.db_interface.get_recipes()
+        if ret[0] != 0:
+            Logger.Logger.log_error(f'Error in model._get_recipes pulling recipes -- ' + ret[1]['error_message'])
+            print('Error in ._get_recipes -- ' + ret[1]['error_message'])
+            exit(1)
+        return ret[1]
+
+    def add_recipe(self, recipe: dict) -> tuple[int, dict]:
+        return self.db_interface.add_recipe(recipe)
+
+    def delete_recipe(self, recipe_id: int) -> tuple[int, dict]:
+        ret = self.db_interface.delete_recipe(recipe_id)
+        if ret[0] == 0:
+            self.recipes.pop(recipe_id)
+        return ret
+
+    def toggle_recipe(self, recipe_id: int):
+        """
+        Selects or deselects the given recipe, toggling
+        its selection for automatic shopping.
+        """
+        if recipe_id in self.selected_recipes:
+            self.selected_recipes.pop(recipe_id)
+        else:
+            self.selected_recipes[recipe_id] = self.recipes[recipe_id]
+
+    def desired_ingredients(self) -> list[dict]:
+        """
+        Sums each upc quantity across the selected recipes.
+        Ignores ingredients with no upc (empty string)
+        :return: [ {'upc': <str>,
+                    'quantity': <int>},
+                    {..}]
+        """
+        ingredient_dict: dict = {}
+        for recipe_id in self.selected_recipes:
+            recipe_ingredients: dict = self.selected_recipes[recipe_id]['ingredients']
+            for ingredient_key in recipe_ingredients:
+                ingredient = recipe_ingredients[ingredient_key]
+                kroger_upc = ingredient['kroger_upc']
+                if kroger_upc == '':
+                    # No UPC on record
+                    continue
+                if kroger_upc in ingredient_dict:
+                    ingredient_dict[kroger_upc] += ingredient['ingredient_quantity']
+                else:
+                    ingredient_dict[kroger_upc] = ingredient['ingredient_quantity']
+        # Transforming the recipe dict into a list of upc dicts
+        order_list: list = []
+        for upc in ingredient_dict.keys():
+            tmp_dict = {
+                'upc': upc,
+                'quantity': ingredient_dict[upc]
+            }
+            order_list.append(tmp_dict)
+        return order_list
+
+
+
