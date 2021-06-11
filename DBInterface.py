@@ -275,4 +275,5 @@ class DBInterface:
             Logger.Logger.log_error(f'Error deleting recipe:' + ret[1])
             print(f'Error deleting recipe:' + ret[1])
             return -1, {'error_message': ret[1]}
+        self.db_connection.commit()
         return 0, {'success_message': f'Deleted recipe {recipe_id}'}
