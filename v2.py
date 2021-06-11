@@ -34,13 +34,25 @@ from tkinter import ttk
 from tkinter import messagebox
 
 
+def traverse_widgets(root_widget):
+
+    hmm: dict = dict(root_widget)
+    print('I AM HERE', root_widget.winfo_name())
+    print(repr(root_widget))
+    print(hmm)
+    children = root_widget.winfo_children()
+    for child_widget in children:
+        traverse_widgets(child_widget)
+
+
 def propagate_binding(root_widget, sequence: str, fnx):
 
-    print('I AM HERE', root_widget)
+    #print('I AM HERE', root_widget.winfo_name())
     children = root_widget.winfo_children()
     for child_widget in children:
         child_widget.bind(sequence, fnx)
         propagate_binding(child_widget, sequence, fnx)
+
 
 class ScrollFrame(Frame):
     """
@@ -456,4 +468,5 @@ if __name__ == "__main__":
     root.after(10, propagate_binding, select_menu.recipe_displayframe, '<Enter>', select_menu.recipe_displayframe._bound_to_mousewheel)
     root.after(10, propagate_binding, select_menu.recipe_displayframe, '<Leave>', select_menu.recipe_displayframe._unbound_to_mousewheel)
 
+    root.after(1000, traverse_widgets, root)
     root.mainloop()
