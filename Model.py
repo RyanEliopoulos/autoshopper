@@ -21,15 +21,23 @@ class Model:
         return ret[1]
 
     def add_recipe(self, recipe: dict) -> tuple[int, dict]:
-        return self.db_interface.add_recipe(recipe)
+        ret = self.db_interface.add_recipe(recipe)
+        if ret[0] != 0:
+            return ret
+        new_recipe: dict = ret[1]
+        recipe_id: int = new_recipe['recipe_id']
+        self.recipes[recipe_id] = new_recipe
+        recipe_title: str = new_recipe['recipe_title']
+        return 0, {'success_message': f'Added {recipe_title}'}
 
     def delete_recipe(self, recipe_id: int) -> tuple[int, dict]:
         ret = self.db_interface.delete_recipe(recipe_id)
         if ret[0] == 0:
             self.recipes.pop(recipe_id)
+            self.selected_recipes.pop(recipe_id, 'NULL')
         return ret
 
-    def toggle_recipe(self, recipe_id: int):
+    def toggle_recipe(self, recipe_id: int) -> None:
         """
         Selects or deselects the given recipe, toggling
         its selection for automatic shopping.
@@ -70,5 +78,7 @@ class Model:
             order_list.append(tmp_dict)
         return order_list
 
-
+    def update_recipe(self):
+        """ Needs to propagate recipe edits to self and DB. """
+        ...
 
