@@ -14,7 +14,6 @@ from selenium.webdriver.common.keys import Keys
 import re
 import urllib.parse
 import time
-import json
 import datetime
 import DBInterface
 import Logger

@@ -92,7 +92,53 @@ class Model:
                 upc['quantity'] = int_quant
         return order_list
 
-    def update_recipe(self):
-        """ Needs to propagate recipe edits to self and DB. """
-        ...
+    def add_ingredient(self, recipe_id: int, ingredient: dict) -> tuple[int, dict]:
+        """
+        Adds a new ingredient entry in the database.
+        Updates Model as well
+        :param recipe_id:
+        :param ingredient:
+                        quantity: Must be > 0,
+                        kroger_upc: Must be a 13 digit integer
 
+                        {'ingredient_name': <>,
+                        'ingredient_quantity': <>,
+                         'ingredient_unit_type': <>,
+                         'kroger_upc':  <> }
+        """
+        # Validating values
+        ingredient_quantity: float = ingredient['ingredient_quantity']
+        if ingredient_quantity <= 0:
+            return -1, {'error_message': f'ingredient_quantity must be >0, not {ingredient_quantity}'}
+        ret = self._valid_upc(ingredient['kroger_upc'])
+        if ret[0] != 0:
+            return ret
+        ret = self.db_interface.add_ingredient(recipe_id, ingredient)
+        if ret[0] != 0:
+            return ret
+        # Updating Model
+        ingredient_id: int = ret[1]['ingredient_id']
+        self.recipes[recipe_id]['ingredients'][ingredient_id] = copy.deepcopy(ingredient)
+        self.recipes[recipe_id]['ingredients'][ingredient_id]['ingredient_id'] = ingredient_id
+        return ret
+
+    def _valid_upc(self, kroger_upc: str) -> tuple[int, dict]:
+        """
+        Must be an empty string or a 13 digit string.
+        Could just use regex here.
+        :param kroger_upc:
+        :return:
+        """
+        if kroger_upc == '':
+            return 0, {}
+
+        if type(kroger_upc) != str:
+            return -1, {'error_message': f'kroger_upc must be type str not {type(kroger_upc)}'}
+        try:
+            cast_val: int = int(kroger_upc)
+        except ValueError as ve:
+            return -1, {'error_message': f'kroger_upc must include digits only: {ve}'}
+        if len(kroger_upc) != 13:
+            return -1, {'error_message': f'upc must be 13 digits long, not {len(kroger_upc)}'}
+
+        return 0, {'success_message': 'valid_upc'}

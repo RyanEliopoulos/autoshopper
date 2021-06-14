@@ -195,6 +195,7 @@ class DBInterface:
                 # Returning without commit
                 self.db_connection.rollback()
                 return -1, {'error_message': f'Error adding ingredient {ingredient}--' + ret[1]}
+            # Preparing return data
             new_ingredient_id: int = self.db_cursor.lastrowid
             recipe['ingredients'][ingredient]['ingredient_id'] = new_ingredient_id
         # Finalizing
@@ -277,3 +278,33 @@ class DBInterface:
             return -1, {'error_message': ret[1]}
         self.db_connection.commit()
         return 0, {'success_message': f'Deleted recipe {recipe_id}'}
+
+    def add_ingredient(self, recipe_id: int, ingredient: dict) -> tuple[int, dict]:
+        """
+        Adds a new ingredient entry into the database
+        :param recipe_id:
+        :param ingredient:  {'ingredient_name': <>,
+                            'ingredient_quantity': <>,
+                             'ingredient_unit_type': <>,
+                             'kroger_upc':  <>}
+         :returns: {'ingredient_id':
+        """
+        sqlstring: str = """ INSERT INTO recipe_ingredients 
+                                (ingredient_name
+                                ,ingredient_quantity
+                                ,ingredient_unit_type
+                                ,kroger_upc 
+                                ,recipe_id)
+                             VALUES (?, ?, ?, ?, ?)
+                         """
+        ret = self._execute_query(sqlstring, (ingredient['ingredient_name'],
+                                              ingredient['ingredient_quantity'],
+                                              ingredient['ingredient_unit_type'],
+                                              ingredient['kroger_upc'],
+                                              recipe_id))
+        if ret[0] != 0:
+            return -1, {'error_message': ret[1]}
+        ingredient_id: int = self.db_cursor.lastrowid
+        self.db_connection.commit()
+        return 0, {'ingredient_id': ingredient_id}
+
