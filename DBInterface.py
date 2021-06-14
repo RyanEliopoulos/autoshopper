@@ -161,6 +161,7 @@ class DBInterface:
                                 }
                  }
         :return: A deep copy of recipe + the recipe and ingredient ids.
+                 'ingredients' dict is re-keyed to ingredient_id
         """
         # Adding recipe table entry
         recipe_title: str = recipe['recipe_title']
@@ -200,7 +201,14 @@ class DBInterface:
             recipe['ingredients'][ingredient]['ingredient_id'] = new_ingredient_id
         # Finalizing
         self.db_connection.commit()
-        # Preparing return structure
+        # 'ingredients' dict needs re-keying
+        # on ingredient_id
+        ingredient_keys = list(recipe['ingredients'].keys())
+        for key in ingredient_keys:
+            ingredient_details: dict = recipe['ingredients'][key]
+            ingredient_id: int = ingredient_details['ingredient_id']
+            recipe['ingredients'][ingredient_id] = ingredient_details
+            recipe['ingredients'].pop(key)
         new_recipe: dict = copy.deepcopy(recipe)
         new_recipe['recipe_id'] = new_recipe_id
         return 0, new_recipe
@@ -213,7 +221,8 @@ class DBInterface:
                  [int: 0, {<recipe_id>:    {'recipe_id': <>,
                                             'recipe_title': <>,
                                             'recipe_notes': <>,
-                                            'ingredients': {'ingredient_name': {<ingredient_name>,
+                                            'ingredients': { 'ingredient_id': {<ingredient_name>,
+                                                                            'ingredient_id': int,
                                                                             'ingredient_quantity': float,
                                                                             'ingredient_unit_type': str,
                                                                             'kroger_upc': str
@@ -252,14 +261,13 @@ class DBInterface:
                 new_recipe['recipe_notes'] = row['recipe_notes']
                 new_recipe['ingredients'] = dict()
             # Adding ingredient info from current row
-            new_ingredient['ingredient_id'] = row['ingredient_id']
+            ingredient_id = row['ingredient_id']
+            new_ingredient['ingredient_id'] = ingredient_id
             new_ingredient['ingredient_name'] = row['ingredient_name']
             new_ingredient['ingredient_quantity'] = row['ingredient_quantity']
             new_ingredient['ingredient_unit_type'] = row['ingredient_unit_type']
             new_ingredient['kroger_upc'] = str(row['kroger_upc'])
-            ingredient_name = new_ingredient['ingredient_name']
-            new_recipe['ingredients'][ingredient_name] = new_ingredient
-
+            new_recipe['ingredients'][ingredient_id] = new_ingredient
         return 0, recipes
 
     def delete_recipe(self, recipe_id: int) -> tuple[int, dict]:
@@ -308,3 +316,12 @@ class DBInterface:
         self.db_connection.commit()
         return 0, {'ingredient_id': ingredient_id}
 
+    def delete_ingredient(self, ingredient_id) -> tuple[int, dict]:
+        sqlstring: str = """ DELETE FROM recipe_ingredients
+                             WHERE ingredient_id = (?)
+                         """
+        ret = self._execute_query(sqlstring, (ingredient_id,))
+        if ret[0] != 0:
+            return -1, {'error_message': ret[1]}
+        self.db_connection.commit()
+        return 0, {}

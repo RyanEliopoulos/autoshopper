@@ -10,6 +10,27 @@ class Model:
         self.recipes: dict = self._get_recipes()
         self.selected_recipes: dict = {}
 
+    def _valid_upc(self, kroger_upc: str) -> tuple[int, dict]:
+        """
+        Must be an empty string or a 13 digit string.
+        Could just use regex here.
+        :param kroger_upc:
+        :return:
+        """
+        if kroger_upc == '':
+            return 0, {}
+
+        if type(kroger_upc) != str:
+            return -1, {'error_message': f'kroger_upc must be type str not {type(kroger_upc)}'}
+        try:
+            cast_val: int = int(kroger_upc)
+        except ValueError as ve:
+            return -1, {'error_message': f'kroger_upc must include digits only: {ve}'}
+        if len(kroger_upc) != 13:
+            return -1, {'error_message': f'upc must be 13 digits long, not {len(kroger_upc)}'}
+
+        return 0, {'success_message': 'valid_upc'}
+
     def _get_recipes(self) -> dict:
         """
         Initialization fnx. Loads recipe data into the Model.
@@ -23,7 +44,8 @@ class Model:
 
     def add_recipe(self, recipe: dict) -> tuple[int, dict]:
         """
-        Returns recipe with recipe_id and ingredient_ids added
+        Returns recipe with recipe_id and ingredient_ids added.
+        Updates database and Model.
         """
         ret = self.db_interface.add_recipe(recipe)
         if ret[0] != 0:
@@ -35,6 +57,11 @@ class Model:
         return 0, view_copy
 
     def delete_recipe(self, recipe_id: int) -> tuple[int, dict]:
+        """
+        Updates database and Model.
+        :param recipe_id:
+        :return:
+        """
         ret = self.db_interface.delete_recipe(recipe_id)
         if ret[0] == 0:
             self.recipes.pop(recipe_id)
@@ -122,23 +149,16 @@ class Model:
         self.recipes[recipe_id]['ingredients'][ingredient_id]['ingredient_id'] = ingredient_id
         return ret
 
-    def _valid_upc(self, kroger_upc: str) -> tuple[int, dict]:
+    def delete_ingredient(self, recipe_id: int, ingredient_id_dict: dict) -> tuple[int, dict]:
         """
-        Must be an empty string or a 13 digit string.
-        Could just use regex here.
-        :param kroger_upc:
-        :return:
+        :param recipe_id:
+        :param ingredient_id_dict:  {'ingredient_id': int <> }.
         """
-        if kroger_upc == '':
-            return 0, {}
-
-        if type(kroger_upc) != str:
-            return -1, {'error_message': f'kroger_upc must be type str not {type(kroger_upc)}'}
-        try:
-            cast_val: int = int(kroger_upc)
-        except ValueError as ve:
-            return -1, {'error_message': f'kroger_upc must include digits only: {ve}'}
-        if len(kroger_upc) != 13:
-            return -1, {'error_message': f'upc must be 13 digits long, not {len(kroger_upc)}'}
-
-        return 0, {'success_message': 'valid_upc'}
+        ingredient_id = ingredient_id_dict['ingredient_id']
+        ret = self.db_interface.delete_ingredient(ingredient_id)
+        if ret[0] != 0:
+            Logger.Logger.log_error(str(ret))
+            print(f'Error deleting ingredient:' + ret)
+        # Updating Model
+        self.recipes[recipe_id]['ingredients'].pop(ingredient_id)
+        return ret

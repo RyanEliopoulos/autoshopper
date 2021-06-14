@@ -1,6 +1,7 @@
 import Communicator
 import DBInterface
 import Model
+import Logger
 
 
 class Controller:
@@ -34,7 +35,7 @@ class Controller:
         """
         valid_changes = {
             'add_ingredient': self.model.add_ingredient,
-            # 'remove_ingredient': self.model.remove_ingredient,
+            'delete_ingredient': self.model.delete_ingredient,
             # 'rename_recipe': self.model.rename_recipe,
             # 'update_notes': self.model.update_notes
         }
