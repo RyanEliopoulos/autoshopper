@@ -29,15 +29,15 @@ class Controller:
     def edit_recipe(self, recipe_id: int, change: dict) -> tuple[int, dict]:
         """
         :param recipe_id
-        :param change: {'change': 'add_ingredient',
-                         <relevant items for the selected method.>
+        :param change: {'change': <valid_changes> str,
+                         'parameter': <arg for fnx calls>
         :return:
         """
         valid_changes = {
             'add_ingredient': self.model.add_ingredient,
             'delete_ingredient': self.model.delete_ingredient,
-            # 'rename_recipe': self.model.rename_recipe,
-            # 'update_notes': self.model.update_notes
+            'rename_recipe': self.model.retitle_recipe,
+            'update_notes': self.model.update_notes
         }
         desired_change: str = change['change']
         if desired_change not in valid_changes.keys():

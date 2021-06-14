@@ -325,3 +325,26 @@ class DBInterface:
             return -1, {'error_message': ret[1]}
         self.db_connection.commit()
         return 0, {}
+
+    def retitle_recipe(self, recipe_id: int, new_title: str) -> tuple[int, dict]:
+        sqlstring: str = """ UPDATE recipes
+                             set recipe_title = (?)
+                             WHERE recipe_id = (?)
+                         """
+        ret = self._execute_query(sqlstring, (new_title
+                                              , recipe_id))
+        if ret[0] != 0:
+            return -1, {'error_message': ret[1]}
+        self.db_connection.commit()
+        return 0, {}
+
+    def update_notes(self, recipe_id: int, updated_notes: str) -> tuple[int, dict]:
+        sqlstring: str = """ UPDATE recipes
+                             SET recipe_notes = (?)
+                             WHERE recipe_id = (?)
+                         """
+        ret = self._execute_query(sqlstring, (updated_notes, recipe_id))
+        if ret[0] != 0:
+            return -1, {'error_message': ret[1]}
+        self.db_connection.commit()
+        return 0, {}
