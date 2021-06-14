@@ -1,4 +1,3 @@
-# Project components
 import Communicator
 import DBInterface
 import Model
@@ -26,13 +25,23 @@ class Controller:
         """ (de)select a given recipe """
         self.model.toggle_recipe(recipe_id)
 
-    def edit_recipe(self):
+    def edit_recipe(self, recipe_id: int, change: dict) -> tuple[int, dict]:
         """
-        Pass a list of changes made to a particular recipe,
-        then "commit" them in order?
+        :param recipe_id
+        :param change: {'change': 'add_ingredient',
+                         <relevant items for the selected method.>
         :return:
         """
-        ...
+        valid_changes = {
+            'add_ingredient': self.model.add_ingredient,
+            # 'remove_ingredient': self.model.remove_ingredient,
+            # 'rename_recipe': self.model.rename_recipe,
+            # 'update_notes': self.model.update_notes
+        }
+        desired_change: str = change['change']
+        if desired_change not in valid_changes.keys():
+            return -1, {'error_message': f'Failed to edit {recipe_id}: {change} is not valid'}
+        return valid_changes[desired_change](recipe_id, change)
 
     def load_cart(self) -> tuple[int, dict]:
         """
