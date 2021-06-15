@@ -46,6 +46,8 @@ class Model:
         """
         Returns recipe with recipe_id and ingredient_ids added.
         Updates database and Model.
+        Should use new_recipe instead to build the recipe
+        one component at at time
         """
         ret = self.db_interface.add_recipe(recipe)
         if ret[0] != 0:
@@ -55,6 +57,22 @@ class Model:
         self.recipes[recipe_id] = new_recipe
         view_copy: dict = copy.deepcopy(new_recipe)
         return 0, view_copy
+
+    def new_recipe(self) -> tuple[int, dict]:
+        """
+        Instantiates a new, blank recipe in the database and model
+        """
+        ret = self.db_interface.new_recipe()
+        if ret[0] == 0:
+            new_recipe: dict = {
+                'recipe_title': '',
+                'recipe_notes': '',
+                'ingredients': {}
+            }
+            recipe_id: int = ret[1]['recipe_id']
+            new_recipe['recipe_id'] = recipe_id
+            self.recipes[recipe_id] = new_recipe
+        return ret
 
     def delete_recipe(self, recipe_id: int) -> tuple[int, dict]:
         """
@@ -155,11 +173,12 @@ class Model:
         :param ingredient_id_dict:  {'ingredient_id': int <> }.
         """
         ingredient_id = ingredient_id_dict['ingredient_id']
+        if ingredient_id not in self.recipes[recipe_id]['ingredients']:
+            return -1, {'error_message': f'invalid ingredient id: {ingredient_id}'}
         ret = self.db_interface.delete_ingredient(ingredient_id)
         if ret[0] != 0:
             Logger.Logger.log_error(str(ret))
             print(f'Error deleting ingredient:' + ret)
-        # Updating Model
         self.recipes[recipe_id]['ingredients'].pop(ingredient_id)
         return ret
 

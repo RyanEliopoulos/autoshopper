@@ -237,8 +237,7 @@ class DBInterface:
                              ,ri.ingredient_quantity
                              ,ri.ingredient_unit_type
                              ,ri.kroger_upc
-                             FROM recipes r, recipe_ingredients ri
-                             WHERE r.recipe_id = ri.recipe_id
+                             FROM recipes r left join recipe_ingredients ri on r.recipe_id = ri.recipe_id
                              ORDER BY r.recipe_id
                          """
         ret: tuple = self._execute_query(sqlstring)
@@ -348,3 +347,20 @@ class DBInterface:
             return -1, {'error_message': ret[1]}
         self.db_connection.commit()
         return 0, {}
+
+    def new_recipe(self) -> tuple[int, dict]:
+        sqlstring: str = """ INSERT INTO recipes 
+                                (recipe_title
+                                ,recipe_notes)
+                             VALUES
+                                (''
+                                ,'')
+                         """
+        ret = self._execute_query(sqlstring)
+        if ret[0] != 0:
+            return -1, {'error_message': ret[1]}
+        recipe_id: int = self.db_cursor.lastrowid
+        self.db_connection.commit()
+        return 0, {'recipe_id': recipe_id}
+
+
