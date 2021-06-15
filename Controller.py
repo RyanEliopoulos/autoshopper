@@ -1,7 +1,6 @@
 import Communicator
 import DBInterface
 import Model
-import Logger
 
 
 class Controller:
@@ -12,8 +11,8 @@ class Controller:
         # @TODO Check if communicator is working, else disable API features but work otherwise
         self.model = Model.Model(self.db_interface)
 
-    def add_recipe(self, recipe: dict) -> tuple[int, dict]:
-        return self.model.add_recipe(recipe)
+    def new_recipe(self) -> tuple[int, dict]:
+        return self.model.add_recipe()
 
     def delete_recipe(self, recipe_id: int) -> tuple[int, dict]:
         return self.model.delete_recipe(recipe_id)
