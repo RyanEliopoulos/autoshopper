@@ -309,7 +309,8 @@ class DBInterface:
         :param ingredient:  {'ingredient_name': <>,
                             'ingredient_quantity': <>,
                              'ingredient_unit_type': <>,
-                             'kroger_upc':  <>}
+                             'kroger_upc':  <>,
+                             'kroger_quantity: <>}
          :returns: {'ingredient_id':
         """
         sqlstring: str = """ INSERT INTO recipe_ingredients 
