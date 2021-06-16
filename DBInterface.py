@@ -82,6 +82,7 @@ class DBInterface:
                         ingredient_quantity REAL NOT NULL,
                         ingredient_unit_type STRING NOT NULL,
                         kroger_upc STRING NOT NULL,
+                        kroger_quantity REAL NOT NULL,
                         recipe_id INT NOT NULL,
                         FOREIGN KEY(recipe_id) REFERENCES recipes(recipe_id))
                     """
@@ -155,8 +156,9 @@ class DBInterface:
                   'recipe_notes': str,
                   'ingredients': {<ingredient1>: {'ingredient_quantity': float,
                                                  'ingredient_name': str,
-                                                 'unit_type': str,
-                                                 'kroger_upc': str},
+                                                 'ingredient_unit_type': str,
+                                                 'kroger_upc': str,
+                                                 'kroger_quantity: float},
                                 {<ingredient2>: {...} }
                                 }
                  }
@@ -182,13 +184,15 @@ class DBInterface:
                             ,ingredient_quantity
                             ,ingredient_unit_type
                             ,kroger_upc
+                            ,kroger_quantity
                             ,recipe_id)
-                            VALUES (?, ?, ?, ?, ?)
+                            VALUES (?, ?, ?, ?, ?, ?)
                         """
             ret = self._execute_query(sqlstring, (details['ingredient_name'],
                                                   details['ingredient_quantity'],
-                                                  details['unit_type'],
+                                                  details['ingredient_unit_type'],
                                                   details['kroger_upc'],
+                                                  details['kroger_quantity'],
                                                   new_recipe_id))
             if ret[0] != 0:
                 Logger.Logger.log_error(f'Error adding ingredient {ingredient} --' + ret[1])
@@ -225,7 +229,8 @@ class DBInterface:
                                                                             'ingredient_id': int,
                                                                             'ingredient_quantity': float,
                                                                             'ingredient_unit_type': str,
-                                                                            'kroger_upc': str
+                                                                            'kroger_upc': str,
+                                                                            'kroger_quantity': float
                                                                             }, ... } } }
         """
         sqlstring: str = """ SELECT 
@@ -237,6 +242,7 @@ class DBInterface:
                              ,ri.ingredient_quantity
                              ,ri.ingredient_unit_type
                              ,ri.kroger_upc
+                             ,ri.kroger_quantity
                              FROM recipes r left join recipe_ingredients ri on r.recipe_id = ri.recipe_id
                              ORDER BY r.recipe_id
                          """
@@ -266,6 +272,7 @@ class DBInterface:
             new_ingredient['ingredient_quantity'] = row['ingredient_quantity']
             new_ingredient['ingredient_unit_type'] = row['ingredient_unit_type']
             new_ingredient['kroger_upc'] = str(row['kroger_upc'])
+            new_ingredient['kroger_quantity'] = (row['kroger_upc'])
             new_recipe['ingredients'][ingredient_id] = new_ingredient
         return 0, recipes
 
@@ -310,13 +317,15 @@ class DBInterface:
                                 ,ingredient_quantity
                                 ,ingredient_unit_type
                                 ,kroger_upc 
+                                ,kroger_quantity
                                 ,recipe_id)
-                             VALUES (?, ?, ?, ?, ?)
+                             VALUES (?, ?, ?, ?, ?, ?)
                          """
         ret = self._execute_query(sqlstring, (ingredient['ingredient_name'],
                                               ingredient['ingredient_quantity'],
                                               ingredient['ingredient_unit_type'],
                                               ingredient['kroger_upc'],
+                                              ingredient['kroger_quantity'],
                                               recipe_id))
         if ret[0] != 0:
             return -1, {'error_message': ret[1]}

@@ -161,6 +161,10 @@ class Model:
         ret = self._valid_upc(ingredient['kroger_upc'])
         if ret[0] != 0:
             return ret
+        if ingredient['kroger_upc']:
+            if ingredient['kroger_quantity'] <= 0:
+                return -1, {'error_message': f'kroger_quantity must be >0 when UPC is present'}
+
         ret = self.db_interface.add_ingredient(recipe_id, ingredient)
         if ret[0] != 0:
             return ret
