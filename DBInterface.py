@@ -275,13 +275,22 @@ class DBInterface:
         for the given recipe_id
         :return:
         """
+        # Clearing recipe_ingredients table
         sqlstring: str = """ DELETE FROM recipe_ingredients 
                              WHERE recipe_id = (?)
                          """
         ret = self._execute_query(sqlstring, (recipe_id,))
+        print(self.db_cursor.lastrowid)
         if ret[0] != 0:
-            Logger.Logger.log_error(f'Error deleting recipe:' + ret[1])
-            print(f'Error deleting recipe:' + ret[1])
+            Logger.Logger.log_error(f'Error deleting recipe_ingredient entries' + ret[1])
+            print(f'Error deleting recipe_ingredient entries:' + ret[1])
+            return -1, {'error_message': ret[1]}
+        # Clearing recipes table
+        sqlstring = """ DELETE FROM recipes 
+                        WHERE recipe_id = (?)
+                    """
+        ret = self._execute_query(sqlstring, (recipe_id,))
+        if ret[0] != 0:
             return -1, {'error_message': ret[1]}
         self.db_connection.commit()
         return 0, {'success_message': f'Deleted recipe {recipe_id}'}
@@ -353,8 +362,8 @@ class DBInterface:
                                 (recipe_title
                                 ,recipe_notes)
                              VALUES
-                                (''
-                                ,'')
+                                ('<New Recipe>'
+                                ,'<Recipe Notes>')
                          """
         ret = self._execute_query(sqlstring)
         if ret[0] != 0:
