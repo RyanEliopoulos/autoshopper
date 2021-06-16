@@ -80,6 +80,9 @@ class Model:
         :param recipe_id:
         :return:
         """
+        if recipe_id not in self.recipes.keys():
+            print(f'Error deleting recipe: {recipe_id} does not exist')
+            return -1, {'error_message': f'Error deleting recipe: {recipe_id} does not exist'}
         ret = self.db_interface.delete_recipe(recipe_id)
         if ret[0] == 0:
             self.recipes.pop(recipe_id)
