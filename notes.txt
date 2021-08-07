@@ -1,3 +1,15 @@
+8/7/2021
+    PoCs for all aspects of the project now exist.  Will need to review bindings for
+    mousewheel and widget <Enter>/<Exit> to figure out best implementation.
+
+
+
+8/6/2021
+    All tkinter widgets have a fnx call to get a handle on their root window (winfo_toplevel()).
+    Can have the "View" class inherit from Tk, allowing all widgets to reference the Model/GUI interface.
+
+
+
 5/8/2021
     Project goals:
         I want a recipe directory that allows me to:
