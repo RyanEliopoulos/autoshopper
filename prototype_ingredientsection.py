@@ -104,7 +104,7 @@ class IngredientDetailContainer(Frame):
         """ removes an entry from the self.ingredient dictionary"""
         # Need to shift all of the entries down one in the GUI .grid rows.
         for x in range(detail_id, self.ingredient_count):
-            self.ingredient_dict[x] = self.ingredient_dict[x+1]
+            self.ingredient_dict[x] = self.ingredient_dict[x + 1]
             self.ingredient_dict[x].grid(row=x)
         self.ingredient_count -= 1
 
@@ -119,7 +119,7 @@ class IngredientDetail(Frame):
                  kroger_upc: str,
                  kroger_quantity: float):
         Frame.__init__(self, parent)
-        self.grid(column=0, row=(detail_id+1))
+        self.grid(column=0, row=(detail_id + 1))
         self.parent = parent
         self.detail_id: int = detail_id  # So the parent object knows what to delete.
         # Control variables from params
@@ -147,7 +147,7 @@ class IngredientDetail(Frame):
         self.kquantity_widget.grid(column=2, row=1)
 
         # Mod widgets
-        self.edit_button: Button = Button(self, text='E')
+        self.edit_button: Button = Button(self, text='E', command=self._edit_ingredient)
         self.edit_button.grid(column=3, row=0, rowspan=2)
         self.delete_button: Button = Button(self,
                                             text='X',
@@ -170,10 +170,73 @@ class IngredientDetail(Frame):
         confirmation_window.destroy()
         self.destroy()
 
+    def _edit_ingredient(self):
+        new_window: Toplevel = Toplevel(height=1000, width=1000)
+        # Row 1 - ingredient name
+        name_label: Label = Label(new_window, text='Ingredient name')
+        name_label.grid(column=0, row=0)
+        temp_iname: StringVar = StringVar()
+        temp_iname.set(self.iname_strvar.get())
+        name_entry: Entry = Entry(new_window, textvariable=temp_iname)
+        name_entry.grid(column=1, row=0)
+        # Row 2 - ingredient quantity
+        iquant_label: Label = Label(new_window, text='Quantity')
+        iquant_label.grid(column=0, row=1)
+        temp_iquantity: DoubleVar = DoubleVar()
+        temp_iquantity.set(self.iquantity_dvar.get())
+        iquant_entry: Entry = Entry(new_window, textvariable=temp_iquantity)
+        iquant_entry.grid(column=1, row=1)
+        # Row 3 - measure type
+        mtype_label: Label = Label(new_window, text='Measure type')
+        mtype_label.grid(column=0, row=2)
+        temp_mtype: StringVar = StringVar()
+        temp_mtype.set(self.mtype_strvar.get())
+        mtype_entry: Entry = Entry(new_window, textvariable=temp_mtype)
+        mtype_entry.grid(column=1, row=2)
+        # Row 4 - Kroger UPC
+        kupc_label: Label = Label(new_window, text='Kroger UPC')
+        kupc_label.grid(column=0, row=3)
+        temp_kupc: StringVar = StringVar()
+        temp_kupc.set(self.kupc_strvar.get())
+        kupc_entry: Entry = Entry(new_window, textvariable=temp_kupc)
+        kupc_entry.grid(column=1, row=3)
+        # Row 5 - Kroger quantity
+        kquant_label: Label = Label(new_window, text='Kroger quantity')
+        kquant_label.grid(column=0, row=4)
+        temp_kquant: DoubleVar = DoubleVar()
+        temp_kquant.set(self.kquantity_dvar.get())
+        kquant_entry: Entry = Entry(new_window, textvariable=temp_kquant)
+        kquant_entry.grid(column=1, row=4)
+        # Row 6 - Save/Discard buttons
+        save_button: Button = Button(new_window, text='Save', command=lambda: self._save_edit(temp_iname.get(),
+                                                                                              temp_iquantity.get(),
+                                                                                              temp_mtype.get(),
+                                                                                              temp_kupc.get(),
+                                                                                              temp_kquant.get(),
+                                                                                              new_window))
+        save_button.grid(column=0, row=5)
+        discard_button: Button = Button(new_window, text='Discard', command=lambda: new_window.destroy())
+        discard_button.grid(column=1, row=5)
+
+    def _save_edit(self,
+                   ingredient_name: str,
+                   ingredient_quantity: float,
+                   measure_type: str,
+                   kroger_upc: str,
+                   kroger_quantity: float,
+                   new_window: Toplevel):
+        # Updates the IngredientDetail control variables from the temp control variables of the edit window.
+        self.iname_strvar.set(ingredient_name)
+        self.iquantity_dvar.set(ingredient_quantity)
+        self.mtype_strvar.set(measure_type)
+        self.kupc_strvar.set(kroger_upc)
+        self.kquantity_dvar.set(kroger_quantity)
+
+        new_window.destroy()
 
 
 root = Tk()
 idc = IngredientDetailContainer(root)
 
-#detail = IngredientDetail(idc, 1, 'my_ingredient', 3, 'cups', '<No UPC>', 0)
+# detail = IngredientDetail(idc, 1, 'my_ingredient', 3, 'cups', '<No UPC>', 0)
 root.mainloop()
