@@ -1,5 +1,6 @@
 from tkinter import *
 from gui.HeaderFrame import HeaderFrame
+from gui.IngredientFrame import IngredientFrame
 
 
 class DetailFrame(Frame):
@@ -20,16 +21,13 @@ class DetailFrame(Frame):
         self.config(background='purple')
         self.grid_propagate(False)
         self.visible: bool = False
-        # Just using a standin label for now
-        # @TODO Actually implement this
-        # self.label: Label = Label(self, text=recipe['recipe_title']+' '+str(recipe['recipe_id']))
-        # self.label.grid(column=0, row=0)
-
+        # Building detail contents
         self.hf: HeaderFrame = HeaderFrame(self,
                                            column=0,
                                            row=0,
                                            recipe_name=recipe['recipe_title'],
                                            recipe_id=self.recipe_id)
+        self.ing_frame: IngredientFrame = IngredientFrame(self, 0, 1, recipe)
 
     def toggle_visibility(self):
         if self.visible:
