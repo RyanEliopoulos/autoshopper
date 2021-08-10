@@ -12,12 +12,12 @@ class Model:
 
     def _valid_upc(self, kroger_upc: str) -> tuple[int, dict]:
         """
-        Must be an empty string or a 13 digit string.
+        Must be a 13 digit string.
         Could just use regex here.
         :param kroger_upc:
         :return:
         """
-        if kroger_upc == '':
+        if kroger_upc == ('0' * 13):  # Default UPC value when a new ingredient is created
             return 0, {}
 
         if type(kroger_upc) != str:
@@ -135,7 +135,7 @@ class Model:
                 upc['quantity'] = int_quant
         return order_list
 
-    def add_ingredient(self, recipe_id: int, ingredient: dict) -> tuple[int, dict]:
+    def add_ingredient(self, recipe_id: int, change_dict: dict) -> tuple[int, dict]:
         """
         Adds a new ingredient entry in the database.
         Updates Model as well
@@ -150,6 +150,7 @@ class Model:
                          'kroger_upc':  str,
                          'kroger_quantity': float}
         """
+        ingredient: dict = change_dict['parameter']
         # Validating values
         ingredient_quantity: float = ingredient['ingredient_quantity']
         if ingredient_quantity <= 0:
@@ -157,7 +158,8 @@ class Model:
         ret = self._valid_upc(ingredient['kroger_upc'])
         if ret[0] != 0:
             return ret
-        if ingredient['kroger_upc']:
+        if ingredient['kroger_upc'] and ingredient['kroger_upc'] != ('0' * 13):
+            # Value check when upc has been modified
             if ingredient['kroger_quantity'] <= 0:
                 return -1, {'error_message': f'kroger_quantity must be >0 when UPC is present'}
 
@@ -170,12 +172,12 @@ class Model:
         self.recipes[recipe_id]['ingredients'][ingredient_id]['ingredient_id'] = ingredient_id
         return ret
 
-    def delete_ingredient(self, recipe_id: int, ingredient_id_dict: dict) -> tuple[int, dict]:
+    def delete_ingredient(self, recipe_id: int, parameter_dict: dict) -> tuple[int, dict]:
         """
         :param recipe_id:
         :param ingredient_id_dict:  {'ingredient_id': int <> }.
         """
-        ingredient_id = ingredient_id_dict['ingredient_id']
+        ingredient_id = parameter_dict['parameter']['ingredient_id']
         if ingredient_id not in self.recipes[recipe_id]['ingredients']:
             return -1, {'error_message': f'invalid ingredient id: {ingredient_id}'}
         ret = self.db_interface.delete_ingredient(ingredient_id)
