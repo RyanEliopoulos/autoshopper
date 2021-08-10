@@ -44,6 +44,16 @@ class SelectFrame(Frame):
         self.label.bind('<Enter>', lambda evnt: evnt.widget.bind('<MouseWheel>', self.ssf.on_mousewheel))
         self.label.bind('<Leave>', lambda evnt: evnt.widget.unbind_all('<MouseWheel>'))
 
+        # Enabling recipe toggle action
+        self.bind('<Button-1>', self._update_detail_frame)
+        self.checkbox.bind('<Button-1>', self._update_detail_frame)
+        self.label.bind('<Button-1>', self._update_detail_frame)
+
+    def _update_detail_frame(self, event):
+        print('Clicked wtf' + str(self.recipe_id))
+        root: 'View' = self.ssf.parent
+        root.update_detail_frame(self.recipe_id)
+
     def default_color(self):
         """ Resets the frame to its default color. Invoked when the frame is deselected. """
         self.config(background=self.default_color)

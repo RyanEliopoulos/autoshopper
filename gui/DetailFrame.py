@@ -1,5 +1,4 @@
 from tkinter import *
-from gui.DetailScrollFrame import DetailScrollFrame
 
 
 class DetailFrame(Frame):
@@ -9,16 +8,17 @@ class DetailFrame(Frame):
         Remember to address sizing!
     """
 
-    def __init__(self, parent: DetailScrollFrame, recipe: dict):
-        Frame.__init__(self, parent)
+    def __init__(self, parent: 'DetailScrollFrame', recipe: dict):
+        Frame.__init__(self, parent, width=300, height=300)
         self.grid(column=0, row=0)
+        self.grid_remove()
         self.config(background='purple')
         self.grid_propagate(False)
         self.visible: bool = False
         # Just using a standin label for now
         # @TODO Actually implement this
-        self.label: Label = Label(self, text=recipe['recipe_title']+' '+recipe['recipe_id'])
-        self.label.grid(column=0, row=0, width=300, height=300)
+        self.label: Label = Label(self, text=recipe['recipe_title']+' '+str(recipe['recipe_id']))
+        self.label.grid(column=0, row=0)
 
     def toggle_visibility(self):
         if self.visible:
