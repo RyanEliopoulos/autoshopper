@@ -13,7 +13,7 @@ class DBInterface:
 
     def manual_debug(self):
         sqlstring: str = """ SELECT *
-                             FROM recipe_ingredients
+                             FROM api_token
                          """
         ret = self._execute_query(sqlstring)
         if ret[0] != 0:
@@ -368,6 +368,7 @@ class DBInterface:
         return 0, {}
 
     def new_recipe(self) -> tuple[int, dict]:
+        # Establishing placeholder values
         sqlstring: str = """ INSERT INTO recipes 
                                 (recipe_title
                                 ,recipe_notes)
@@ -379,7 +380,29 @@ class DBInterface:
         if ret[0] != 0:
             return -1, {'error_message': ret[1]}
         recipe_id: int = self.db_cursor.lastrowid
+        sqlstring = f""" INSERT INTO recipe_ingredients 
+                        (ingredient_name
+                        ,ingredient_quantity
+                        ,ingredient_unit_type
+                        ,kroger_upc
+                        ,kroger_quantity
+                        ,recipe_id)
+                        VALUES 
+                        ('<Example Ingredient>'
+                        ,3
+                        ,'strips'
+                        ,'1313131313131'
+                        ,.25 
+                        ,?)
+                    """
+        ret = self._execute_query(sqlstring, (recipe_id,))
+        if ret[0] != 0:
+            return -1, {'error_message': ret[1]}
         self.db_connection.commit()
-        return 0, {'recipe_id': recipe_id}
+        # Getting new recipe
+        ret = self.get_recipes()
+        desired_recipe: dict = ret[1][recipe_id]
+
+        return 0, {'recipe': desired_recipe}
 
 

@@ -9,6 +9,10 @@ class SelectionScrollFrame(ScrollFrame):
 
         Contains constants for the child widgets. Requires updating the canvas values from
         the inherited class to accommodate these values as the default for the canvas is 1.
+
+
+        @TODO Make the background coloring dynamic i.e. when adding or deleting a recipe, make sure
+              the background is the right color
     """
     # CONSTANTS for the checkbox+name label containers
     # These are the minsize values.
@@ -20,6 +24,8 @@ class SelectionScrollFrame(ScrollFrame):
         ScrollFrame.__init__(self, parent, column, row, **kwargs)
         self.parent: 'View' = parent  # Root
         self.recipes: dict = recipes
+        self.select_frames: dict = {}
+        self.highlighted_frame = None  # SelectFrame
         self.framed_recipes = 0  # Track frame count so new recipes can be placed on the bottom.
         # Populating canvas
         self._build_canvas()
@@ -47,7 +53,7 @@ class SelectionScrollFrame(ScrollFrame):
         for id_name_pair in sort_list:
             recipe_id: int = id_name_pair[0]
             full_recipe: dict = self.recipes[recipe_id]
-            SelectFrame(self.canvas_frame,
+            new_frame = SelectFrame(self.canvas_frame,
                         self,
                         SelectionScrollFrame.select_frame_width,
                         SelectionScrollFrame.select_frame_height,
@@ -59,5 +65,50 @@ class SelectionScrollFrame(ScrollFrame):
                 bg = 'white'
             else:
                 bg = 'light gray'
+            self.select_frames[recipe_id] = new_frame
+
+    def delete_recipe(self, recipe_id: int):
+        """ Deletes the widgets associated with the given recipe
+        """
+        target_frame: SelectFrame = self.select_frames[recipe_id]
+        target_frame.destroy()
+        self.select_frames.pop(recipe_id)
+        self.highlighted_frame = None
+        # Shrinking canvas to adjust for reduced contents
+        recipe_count: int = len(self.select_frames)
+        canvas_scrollregion = recipe_count * SelectionScrollFrame.select_frame_height
+        canvas_width = SelectionScrollFrame.select_frame_width
+        self.canvas.configure(scrollregion=(0, 0, canvas_width, canvas_scrollregion), width=canvas_width)
+
+    def add_recipe(self, active_recipe, recipe: dict):
+        """
+
+        :param active_recipe: DetailFrame or None
+        :param recipe: {'recipe_id' : (), 'recipe_title', ()...}
+        :return:
+        """
+        # Turning off the previously selected SelectFrame
+        if active_recipe is not None:
+            active_recipe_id: int = active_recipe.recipe_id
+            self.select_frames[active_recipe_id].reset_color()
+
+        # Adding the new recipe to the bottom of the canvas
+        recipe_id: int = recipe['recipe_id']
+        new_frame: SelectFrame = SelectFrame(self.canvas_frame,
+                                             self,
+                                             SelectionScrollFrame.select_frame_width,
+                                             SelectionScrollFrame.select_frame_height,
+                                             recipe,
+                                             self.framed_recipes,
+                                             'light gray')
+        self.select_frames[recipe_id] = new_frame
+        # Highlighting new frame
+        new_frame._update_detail_frame('unnecessary')
+        # Expanding canvas
+        recipe_count: int = len(self.select_frames)
+        canvas_scrollregion = recipe_count * SelectionScrollFrame.select_frame_height
+        canvas_width = SelectionScrollFrame.select_frame_width
+        self.canvas.configure(scrollregion=(0, 0, canvas_width, canvas_scrollregion), width=canvas_width)
+        # @TODO cause the canvas to scroll to the bottom.
 
 

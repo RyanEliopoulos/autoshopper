@@ -53,8 +53,14 @@ class SelectFrame(Frame):
         print('Clicked wtf' + str(self.recipe_id))
         root: 'View' = self.ssf.parent
         root.update_detail_frame(self.recipe_id)
+        if self.ssf.highlighted_frame is not None:
+            self.ssf.highlighted_frame.reset_color()
+        self.configure(background='blue')
+        self.label.configure(background='light blue')
+        self.checkbox.configure(background='light blue')
+        self.ssf.highlighted_frame = self
 
-    def default_color(self):
+    def reset_color(self):
         """ Resets the frame to its default color. Invoked when the frame is deselected. """
         self.config(background=self.default_color)
         self.checkbox.config(background=self.default_color)

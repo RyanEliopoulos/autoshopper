@@ -9,6 +9,7 @@ class DetailFrame(Frame):
     """
 
     def __init__(self, parent: 'DetailScrollFrame', recipe: dict):
+        self.recipe_id: int = recipe['recipe_id']
         Frame.__init__(self, parent, width=300, height=300)
         self.grid(column=0, row=0)
         self.grid_remove()

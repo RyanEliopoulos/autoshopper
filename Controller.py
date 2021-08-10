@@ -12,9 +12,11 @@ class Controller:
         self.model = Model.Model(self.db_interface)
 
     def new_recipe(self) -> tuple[int, dict]:
-        return self.model.add_recipe()
+        """ Returns the recipe_id upon success """
+        return self.model.new_recipe()
 
     def delete_recipe(self, recipe_id: int) -> tuple[int, dict]:
+        """ Returns """
         return self.model.delete_recipe(recipe_id)
 
     def get_recipes(self) -> dict:

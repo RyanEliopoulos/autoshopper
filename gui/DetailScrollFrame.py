@@ -27,5 +27,17 @@ class DetailScrollFrame(ScrollFrame):
         self.visible_frame = self.detail_frames[recipe_id]
         self.visible_frame.toggle_visibility()
 
+    def delete_recipe(self):
+        """ Will always be the visible frame """
+        self.visible_frame.destroy()
+        self.visible_frame = None
+
+    def new_recipe(self, new_recipe: dict):
+        recipe_id: int = new_recipe['recipe_id']
+        new_detailframe = DetailFrame(self, new_recipe)
+        self.detail_frames[recipe_id] = new_detailframe
+        self.make_visible(recipe_id)
+
+
 
 
