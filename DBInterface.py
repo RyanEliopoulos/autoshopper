@@ -391,7 +391,7 @@ class DBInterface:
                         ('<Example Ingredient>'
                         ,3
                         ,'strips'
-                        ,'1313131313131'
+                        ,'0000000000000'
                         ,.25 
                         ,?)
                     """

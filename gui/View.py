@@ -22,6 +22,7 @@ class View(Tk):
         self.config(menu=mn)
         mn.add_command(label='New Recipe', command=self._new_recipe)
         mn.add_command(label='Delete Recipe', command=self._delete_recipe)
+        mn.add_command(label='Load Cart', command=self.controller.load_cart)
 
     def _new_recipe(self):
         # Requesting new recipe from the controller

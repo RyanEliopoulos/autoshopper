@@ -28,7 +28,7 @@ class SelectFrame(Frame):
 
         # Building contents
         self.checkbox_var: IntVar = IntVar()
-        self.checkbox: Checkbutton = Checkbutton(self, height=2, variable=self.checkbox_var)
+        self.checkbox: Checkbutton = Checkbutton(self, height=2, variable=self.checkbox_var, command=self._select_recipe)
         self.checkbox.grid(column=0, row=0)
         self.checkbox.config(background=bg)
         # # # Label
@@ -46,7 +46,7 @@ class SelectFrame(Frame):
 
         # Enabling recipe toggle action
         self.bind('<Button-1>', self._update_detail_frame)
-        self.checkbox.bind('<Button-1>', self._update_detail_frame)
+        # self.checkbox.bind('<Button-1>', self._update_detail_frame)  # This behavior is annoying
         self.label.bind('<Button-1>', self._update_detail_frame)
 
     def _update_detail_frame(self, event):
@@ -59,6 +59,10 @@ class SelectFrame(Frame):
         self.label.configure(background='light blue')
         self.checkbox.configure(background='light blue')
         self.ssf.highlighted_frame = self
+
+    def _select_recipe(self):
+        root: 'View' = self.ssf.parent
+        root.controller.toggle_recipe(self.recipe_id)
 
     def reset_color(self):
         """ Resets the frame to its default color. Invoked when the frame is deselected. """

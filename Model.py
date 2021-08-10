@@ -97,7 +97,7 @@ class Model:
     def desired_ingredients(self) -> list[dict]:
         """
         Sums each kroger_quantity across the selected recipes.
-        Ignores ingredients with no upc (empty string)
+        Ignores ingredients with default upc (13 zeroes)
         :return: [ {'upc': <str>,
                     'quantity': <int>},
                     {..}]
@@ -108,7 +108,7 @@ class Model:
             for ingredient_key in recipe_ingredients:
                 ingredient = recipe_ingredients[ingredient_key]
                 kroger_upc = ingredient['kroger_upc']
-                if kroger_upc == '':
+                if kroger_upc == '0000000000000':
                     # No UPC on record
                     continue
                 if kroger_upc in ingredient_dict:
