@@ -39,9 +39,11 @@ class View(Tk):
 
     def _delete_recipe(self):
         # Checking for selected recipe
+
         if self.DetailScrollFrame.visible_frame is None:
             print('No recipe is currently selected')
             return
+        # @TODO Enforce confirmation with user before acting
         recipe_id: int = self.DetailScrollFrame.visible_frame.recipe_id
         ret = self.controller.delete_recipe(recipe_id)
         if ret[0] == -1:

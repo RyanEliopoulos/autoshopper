@@ -185,9 +185,9 @@ class Model:
         self.recipes[recipe_id]['ingredients'].pop(ingredient_id)
         return ret
 
-    def retitle_recipe(self, recipe_id: int, new_title_dict: dict) -> tuple[int, dict]:
+    def retitle_recipe(self, recipe_id: int, change_dict: dict) -> tuple[int, dict]:
         """ Update database and Model """
-        new_title: str = new_title_dict['new_recipe_title']
+        new_title = change_dict['parameter']
         ret = self.db_interface.retitle_recipe(recipe_id, new_title)
         if ret[0] == 0:
             self.recipes[recipe_id]['recipe_title'] = new_title
