@@ -102,6 +102,7 @@ class SelectionScrollFrame(ScrollFrame):
                                              self.framed_recipes,
                                              'light gray')
         self.select_frames[recipe_id] = new_frame
+        self.framed_recipes += 1
         # Highlighting new frame
         new_frame._update_detail_frame('unnecessary')
         # Expanding canvas
