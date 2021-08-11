@@ -9,17 +9,22 @@ class IngredientFrame(Frame):
         each contain the widgets needed to display the information for a single ingredient entry.
     """
 
-    def __init__(self, parent: Frame, column: int, row: int, recipe: dict):
+    def __init__(self, parent: 'DetailFrame', column: int, row: int, recipe: dict):
         """
         :param recipe:  Expects recipe to already be unpacked
         """
         Frame.__init__(self, parent)
         self.grid(column=column, row=row)
-        self.parent: Frame = parent
+        self.parent: 'DetailFrame' = parent
         self.recipe: dict = recipe
         self.ing_button: Button = self._build_button()
         self.ing_index: int = 1  # Relative position tracker for gridding new IngredientComponent objects
         self.ingredient_components: dict = self._build_components()  # Keyed on ingredient_id
+        # Enabling mouse scrolling
+        self.bind('<Enter>', lambda evnt: evnt.widget.bind('<MouseWheel>', self.parent.dsf.on_mousewheel))
+        self.bind('<Leave>', lambda evnt: evnt.widget.unbind_all('<MouseWheel>'))
+        self.ing_button.bind('<Enter>', lambda evnt: evnt.widget.bind('<MouseWheel>', self.parent.dsf.on_mousewheel))
+        self.ing_button.bind('<Leave>', lambda evnt: evnt.widget.unbind_all('<MouseWheel>'))
 
     def _build_components(self) -> dict:
         # Iterate through self.recipe['ingredients'] building IngredientComponent objects
@@ -121,6 +126,8 @@ class IngredientFrame(Frame):
                                                                      ingredient_dict)
             self.ing_index += 1
             self.ingredient_components[new_ingredient_id] = new_component
+            # Updating canvas size
+            self.parent.dsf.resize()
         new_window.destroy()
 
 

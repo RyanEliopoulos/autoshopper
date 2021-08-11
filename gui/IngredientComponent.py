@@ -44,11 +44,30 @@ class IngredientComponent(Frame):
                                          text='X',
                                          command=lambda: self._delete_confirmation(self.ingredient['ingredient_name']))
         self.del_button.grid(column=4, row=0, rowspan=1)
+        self._bind_scrolling()
 
     def label_factory(self, text: str, column: int, row: int) -> Label:
         new_label: Label = Label(self, text=text)
         new_label.grid(column=column, row=row)
         return new_label
+
+    def _bind_scrolling(self):
+        self.bind('<Enter>', lambda evnt: evnt.widget.bind('<MouseWheel>', self.parent.parent.dsf.on_mousewheel))
+        self.bind('<Leave>', lambda evnt: evnt.widget.unbind_all('<MouseWheel>'))
+        self.name_label.bind('<Enter>', lambda evnt: evnt.widget.bind('<MouseWheel>', self.parent.parent.dsf.on_mousewheel))
+        self.name_label.bind('<Leave>', lambda evnt: evnt.widget.unbind_all('<MouseWheel>'))
+        self.iquantity_label.bind('<Enter>', lambda evnt: evnt.widget.bind('<MouseWheel>', self.parent.parent.dsf.on_mousewheel))
+        self.iquantity_label.bind('<Leave>', lambda evnt: evnt.widget.unbind_all('<MouseWheel>'))
+        self.mtype_label.bind('<Enter>', lambda evnt: evnt.widget.bind('<MouseWheel>', self.parent.parent.dsf.on_mousewheel))
+        self.mtype_label.bind('<Leave>', lambda evnt: evnt.widget.unbind_all('<MouseWheel>'))
+        self.kroger_upc.bind('<Enter>', lambda evnt: evnt.widget.bind('<MouseWheel>', self.parent.parent.dsf.on_mousewheel))
+        self.kroger_upc.bind('<Leave>', lambda evnt: evnt.widget.unbind_all('<MouseWheel>'))
+        self.kroger_quantity.bind('<Enter>', lambda evnt: evnt.widget.bind('<MouseWheel>', self.parent.parent.dsf.on_mousewheel))
+        self.kroger_quantity.bind('<Leave>', lambda evnt: evnt.widget.unbind_all('<MouseWheel>'))
+        self.del_button.bind('<Enter>', lambda evnt: evnt.widget.bind('<MouseWheel>', self.parent.parent.dsf.on_mousewheel))
+        self.del_button.bind('<Leave>', lambda evnt: evnt.widget.unbind_all('<MouseWheel>'))
+        self.edit_button.bind('<Enter>', lambda evnt: evnt.widget.bind('<MouseWheel>', self.parent.parent.dsf.on_mousewheel))
+        self.edit_button.bind('<Leave>', lambda evnt: evnt.widget.unbind_all('<MouseWheel>'))
 
     def _edit_ingredients(self,
                           ingredient_name: str,

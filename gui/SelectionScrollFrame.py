@@ -103,8 +103,9 @@ class SelectionScrollFrame(ScrollFrame):
         # Highlighting new frame
         new_frame._update_detail_frame('unnecessary')
         # Expanding scrollregion
-        self.parent.update_idletasks()  # Ensures proper bbox behavior
-        self.canvas.configure(scrollregion=self.canvas.bbox('all'))
+        # self.parent.update_idletasks()  # Ensures proper bbox behavior
+        # self.canvas.configure(scrollregion=self.canvas.bbox('all'))
+        self.resize()
         self.canvas.yview_moveto(1)  # Scrolls canvas to the new select frame.
 
 

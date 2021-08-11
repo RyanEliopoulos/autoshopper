@@ -10,16 +10,21 @@ class DetailFrame(Frame):
         Remember to address sizing!
     """
 
-    def __init__(self, parent: 'DetailScrollFrame', recipe: dict):
+    def __init__(self,
+                 parent: Frame,
+                 dsf: 'DetailScrollFrame',
+                 recipe: dict):
         """ recipe: {'ingredient_title': <>, 'recipe_id': <>, etc.. }
         """
 
         self.recipe_id: int = recipe['recipe_id']
+        self.parent: Frame = parent
+        self.dsf: 'DetailScrollFrame' = dsf
         Frame.__init__(self, parent, width=300, height=300)
-        self.grid(column=0, row=0)
+        self.grid(column=0, row=0, sticky='nw')
         self.grid_remove()
         self.config(background='purple')
-        self.grid_propagate(False)
+        self.grid_propagate(True)  # shrinking to fit contents is just dandy here.
         self.visible: bool = False
         # Building detail contents
         self.hf: HeaderFrame = HeaderFrame(self,
@@ -28,6 +33,10 @@ class DetailFrame(Frame):
                                            recipe_name=recipe['recipe_title'],
                                            recipe_id=self.recipe_id)
         self.ing_frame: IngredientFrame = IngredientFrame(self, 0, 1, recipe)
+
+        # Toggling scrolling
+        self.bind('<Enter>', lambda evnt: evnt.widget.bind('<MouseWheel>', self.dsf.on_mousewheel))
+        self.bind('<Leave>', lambda evnt: evnt.widget.unbind_all('<MouseWheel>'))
 
     def toggle_visibility(self):
         if self.visible:

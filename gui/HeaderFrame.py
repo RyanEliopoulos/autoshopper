@@ -8,14 +8,14 @@ class HeaderFrame(Frame):
     """
 
     def __init__(self,
-                 parent: Frame,
+                 parent: 'DetailFrame',
                  column: int,
                  row: int,
                  recipe_name: str,
                  recipe_id: int):
         Frame.__init__(self, parent)
         self.grid(column=column, row=row)
-        self.parent: Frame = parent
+        self.parent: 'DetailFrame' = parent
         self.recipe_name: str = recipe_name
         self.recipe_id: int = recipe_id
         # Building label
@@ -24,6 +24,15 @@ class HeaderFrame(Frame):
         # Building edit button
         self.edit_button: Button = Button(self, text='E', command=self._edit_header)
         self.edit_button.grid(column=1, row=0)
+        # Toggling mousewheel scroll
+        self.bind('<Enter>', lambda evnt: evnt.widget.bind('<MouseWheel>', self.parent.dsf.on_mousewheel))
+        self.bind('<Leave>', lambda evnt: evnt.widget.unbind_all('<MouseWheel>'))
+
+        self.label.bind('<Enter>', lambda evnt: evnt.widget.bind('<MouseWheel>', self.parent.dsf.on_mousewheel))
+        self.label.bind('<Leave>', lambda evnt: evnt.widget.unbind_all('<MouseWheel>'))
+
+        self.edit_button.bind('<Enter>', lambda evnt: evnt.widget.bind('<MouseWheel>', self.parent.dsf.on_mousewheel))
+        self.edit_button.bind('<Leave>', lambda evnt: evnt.widget.unbind_all('<MouseWheel>'))
 
     def _edit_header(self):
         # Opens the new window containing the entry fields

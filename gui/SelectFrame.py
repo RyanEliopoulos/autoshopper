@@ -1,4 +1,5 @@
 from tkinter import *
+from gui.errormsg import error_message
 
 
 class SelectFrame(Frame):

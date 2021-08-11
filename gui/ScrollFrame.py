@@ -14,9 +14,9 @@ class ScrollFrame(Frame):
 
     """
 
-    def __init__(self, parent, column, row, **kwargs):
+    def __init__(self, parent: 'View', column, row, **kwargs):
         Frame.__init__(self, parent, **kwargs)
-        self.parent = parent
+        self.parent: 'View' = parent
         self.grid(column=column, row=row, sticky=(N, S, E, W))
         self.columnconfigure(0, weight=1)  # Allows canvas to match Frame resize horizontally
         self.rowconfigure(0, weight=1)  # Ditto vertically  #@TODO A canvas larger than the list scrolls erroneously
@@ -49,6 +49,21 @@ class ScrollFrame(Frame):
         # Padding for the sake of menu button visibility
         self.config(pady=5)
 
+    def resize(self):
+        """ Adjusts the canvas dimensions and scroll regions to accommodate a change in widget contents """
+        self.parent.update_idletasks()  # Ensuring all widgets have been fully instantiated
+        bbox_dimensions: tuple = self.canvas.bbox('all')
+        width = bbox_dimensions[2]
+        height = bbox_dimensions[3]
+        self.canvas.configure(scrollregion=bbox_dimensions)
+        max_height = self.winfo_screenheight() - 40  # Room for the menu buttons
+        max_width = self.winfo_screenwidth() - (40 + 300)  # Room for the SelectionScrollFrame and scrollbars
+        if height > max_height:
+            height = max_height
+        if width > max_width:
+            width = max_width
+        self.canvas.config(width=width, height=height)
+
     def _bind_scroll_fnx(self, event):
         """ Activates scrolling functionality to the given widgets when mouse is present """
         print('bound')
@@ -64,7 +79,9 @@ class ScrollFrame(Frame):
 
         # Enforce sanity check for scrolling here?
         canvas_height: int = self.canvas.winfo_height()
+        print(f'Canvas height: {canvas_height}')
         region_str: str = self.canvas.cget('scrollregion')
+        print(f' Scroll region: {region_str}')
         scrollregion_height = int(region_str.split(' ')[3])
         if scrollregion_height > canvas_height:
             self.canvas.yview_scroll(int(-1 * (event.delta / 120)), 'units')
