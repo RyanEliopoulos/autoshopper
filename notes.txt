@@ -1,3 +1,10 @@
+8/10/2021
+    event.bind(<<Modified>>, <update widget sizing) <-- Solution for weird canvas scrolling behavior.
+
+    The weird scroll issue: If the canvas size exceeds that of the scroll region, the current mousewheel setting
+                            will cause it to still scroll.
+
+
 8/7/2021
     PoCs for all aspects of the project now exist.  Will need to review bindings for
     mousewheel and widget <Enter>/<Exit> to figure out best implementation.
