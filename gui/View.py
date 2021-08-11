@@ -23,7 +23,7 @@ class View(Tk):
         self.config(menu=mn)
         mn.add_command(label='New Recipe', command=self._new_recipe)
         mn.add_command(label='Delete Recipe', command=self._delete_confirmation)
-        mn.add_command(label='Load Cart', command=self.controller.load_cart)
+        mn.add_command(label='Load Cart', command=self._load_cart)
 
     def _new_recipe(self):
         # Requesting new recipe from the controller
@@ -65,3 +65,9 @@ class View(Tk):
 
     def update_detail_frame(self, recipe_id):
         self.DetailScrollFrame.make_visible(recipe_id)
+
+    def _load_cart(self):
+        ret = self.controller.load_cart()
+        if ret[0] != 0:
+            error_message(ret)
+
