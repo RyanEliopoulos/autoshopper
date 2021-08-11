@@ -1,5 +1,9 @@
 """
 
+
+    v2.py is the prototype file for practicing tkinter.
+
+
     columnconfigure(minsize=) Modifies the minimum width
     rowconfigure(minsize=) modifies the minimum height
 
@@ -113,6 +117,9 @@ class ScrollFrame(Frame):
 
 
 class SelectMenu:
+    """ This is the top-level object for the GUI.  Or will be in the final version.
+        Should inherit from root (tk?) object.
+    """
 
     def __init__(self, root_widget, recipes: list[dict]):
         self.root_widget = root_widget
@@ -127,8 +134,8 @@ class SelectMenu:
         self.right_frame = Frame(root_widget, height=1000, width=700)
 
         # Root widget settings
-        self.root_widget.columnconfigure(0, weight=0, minsize=300)
-        self.root_widget.columnconfigure(1, weight=1, minsize=700)
+        self.root_widget.columnconfigure(0, weight=1, minsize=300)
+        self.root_widget.columnconfigure(1, weight=5, minsize=700)
         self.root_widget.minsize(1000, 800)
         self.root_widget.after(1, self.frame_resize)
 
@@ -152,9 +159,7 @@ class SelectMenu:
 
 class RecipesScrollFrame(ScrollFrame):
     """
-        Frame containing a canvas and a scrollbar for manipulating that canvas, as well as a frame held within
-        the canvas as a window.
-
+        Controls the left-hand portion of the main menu (the select frame)
     """
 
     def __init__(self, recipes: list[dict], column, row, parent, **kwargs):
@@ -164,7 +169,7 @@ class RecipesScrollFrame(ScrollFrame):
         self.active_select_frame = None
         self.displayrecipe = None  # A method to communicate with the right frame. Is updated by SelectMenu.
 
-        self.canvas.config(background='brown')
+        self.canvas.config(background='orange')
 
     def build_list(self):
         bg = 'light gray'
@@ -273,7 +278,7 @@ class DisplayScrollFrame(ScrollFrame):
         # Has a dict of the recipe display frames keyed to recipe name?
         self.columnconfigure(0, minsize=680)
         self.columnconfigure(1, minsize=20)
-        super().config(background='blue')
+        super().config(background='pink')
 
     def build_list(self):
         """
@@ -297,7 +302,7 @@ class DisplayScrollFrame(ScrollFrame):
 
 class SelectScreenRecipeDisplayFrame(Frame):
     """
-        This object displays all the information about a given recipe.
+        This object displays all the information about a given recipe (right-hand portion of display).
     """
 
     def __init__(self, recipe: dict, parent, **kwargs):
@@ -360,7 +365,7 @@ class SelectScreenRecipeDisplayFrame(Frame):
 if __name__ == "__main__":
 
     first_recipe = {
-        'name': 'tacos',
+        'name': 'tacos what would happen if this part of the program was also taking up many characters?',
         'ingredients': [
             {'ingredient_name': 'ground beef',
              'quantity': 1,

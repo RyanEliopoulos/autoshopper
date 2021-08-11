@@ -1,3 +1,9 @@
+8/11/2021
+    I need to be on top of passing copies of dictionaries around VS. passing the same reference everywhere..
+    .. probably.
+
+
+
 8/10/2021
     event.bind(<<Modified>>, <update widget sizing) <-- Solution for weird canvas scrolling behavior.
 
