@@ -30,7 +30,7 @@ class View(Tk):
         if ret[0] == -1:
             print("Someting went wrong creating a new recipe" + str(ret))
         else:
-            new_recipe: dict = ret[1]['recipe']
+            new_recipe: dict = ret[1]
             print('something went right creating a new recipe')
             active_recipe: 'DetailFrame' = self.DetailScrollFrame.visible_frame  # pulled for select's benefit
             self.DetailScrollFrame.new_recipe(new_recipe)

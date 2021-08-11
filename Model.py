@@ -64,9 +64,9 @@ class Model:
         """
         ret = self.db_interface.new_recipe()
         if ret[0] == 0:
-            new_recipe = ret[1]['recipe']
-            recipe_id: int = new_recipe['recipe_id']
-            self.recipes[recipe_id] = {recipe_id: new_recipe}
+            new_recipe = ret[1]
+            recipe_id = new_recipe['recipe_id']
+            self.recipes[recipe_id] = new_recipe
         return ret
 
     def delete_recipe(self, recipe_id: int) -> tuple[int, dict]:

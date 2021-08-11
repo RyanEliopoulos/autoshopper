@@ -368,6 +368,10 @@ class DBInterface:
         return 0, {}
 
     def new_recipe(self) -> tuple[int, dict]:
+        """
+
+        :return:  {'ingredient_id': <>, 'ingredient_name': <>, etc.. }
+        """
         # Establishing placeholder values
         sqlstring: str = """ INSERT INTO recipes 
                                 (recipe_title
@@ -401,8 +405,9 @@ class DBInterface:
         self.db_connection.commit()
         # Getting new recipe
         ret = self.get_recipes()
+        if ret[0] != 0:
+            return -1, {'error_message': ret[1]}
         desired_recipe: dict = ret[1][recipe_id]
-
-        return 0, {'recipe': desired_recipe}
+        return 0, desired_recipe
 
 
