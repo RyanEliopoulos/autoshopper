@@ -15,7 +15,7 @@ class SelectFrame(Frame):
                  row: int,
                  bg: str):
         Frame.__init__(self, parent, width=width, height=height)
-        self.parent: SelectionScrollFrame = parent
+        self.parent: Frame = parent
         self.ssf = ssf
         self.recipe_id: int = recipe['recipe_id']
         self.default_color: str = bg

@@ -38,7 +38,7 @@ class ScrollFrame(Frame):
         self.canvas_frame.propagate(False)
         canvas_x = self.canvas.canvasx(0)
         canvas_y = self.canvas.canvasy(0)
-        self.canvas.create_window((canvas_x, canvas_y), window=self.canvas_frame, anchor='nw')
+        self.canvas.create_window((canvas_x, canvas_y), window=self.canvas_frame, anchor=N+W)
         self.canvas_frame.bind('<Enter>', self._bind_scroll_fnx)
         self.canvas_frame.bind('<Leave>', self._unbind_scroll_fnx)
         # Scroll bar
@@ -60,9 +60,14 @@ class ScrollFrame(Frame):
         event.widget.unbind('<MouseWheel>')
 
     def on_mousewheel(self, event):
-        # print('here')
         print('Mouse scrolling activated')
-        self.canvas.yview_scroll(int(-1 * (event.delta / 120)), 'units')
+
+        # Enforce sanity check for scrolling here?
+        canvas_height: int = self.canvas.winfo_height()
+        region_str: str = self.canvas.cget('scrollregion')
+        scrollregion_height = int(region_str.split(' ')[3])
+        if scrollregion_height > canvas_height:
+            self.canvas.yview_scroll(int(-1 * (event.delta / 120)), 'units')
 
 
 

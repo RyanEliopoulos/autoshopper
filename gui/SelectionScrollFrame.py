@@ -75,10 +75,7 @@ class SelectionScrollFrame(ScrollFrame):
         self.select_frames.pop(recipe_id)
         self.highlighted_frame = None
         # Shrinking canvas to adjust for reduced contents
-        recipe_count: int = len(self.select_frames)
-        canvas_scrollregion = recipe_count * SelectionScrollFrame.select_frame_height
-        canvas_width = SelectionScrollFrame.select_frame_width
-        self.canvas.configure(scrollregion=(0, 0, canvas_width, canvas_scrollregion), width=canvas_width)
+        self.canvas.configure(scrollregion=self.canvas.bbox('all'))
 
     def add_recipe(self, active_recipe, recipe: dict):
         """
@@ -105,11 +102,9 @@ class SelectionScrollFrame(ScrollFrame):
         self.framed_recipes += 1
         # Highlighting new frame
         new_frame._update_detail_frame('unnecessary')
-        # Expanding canvas
-        recipe_count: int = len(self.select_frames)
-        canvas_scrollregion = recipe_count * SelectionScrollFrame.select_frame_height
-        canvas_width = SelectionScrollFrame.select_frame_width
-        self.canvas.configure(scrollregion=(0, 0, canvas_width, canvas_scrollregion), width=canvas_width)
-        # @TODO cause the canvas to scroll to the bottom.
+        # Expanding scrollregion
+        self.parent.update_idletasks()  # Ensures proper bbox behavior
+        self.canvas.configure(scrollregion=self.canvas.bbox('all'))
+        self.canvas.yview_moveto(1)  # Scrolls canvas to the new select frame.
 
 
