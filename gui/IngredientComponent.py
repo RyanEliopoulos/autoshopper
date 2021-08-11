@@ -34,11 +34,11 @@ class IngredientComponent(Frame):
                                                          1)
         self.edit_button:Button = Button(self,
                                          text='E',
-                                         command=lambda: self._edit_ingredients(ingredient['ingredient_name'],
-                                                                                ingredient['ingredient_quantity'],
-                                                                                ingredient['ingredient_unit_type'],
-                                                                                ingredient['kroger_upc'],
-                                                                                ingredient['kroger_quantity']))
+                                         command=lambda: self._edit_ingredients(self.ingredient['ingredient_name'],
+                                                                                self.ingredient['ingredient_quantity'],
+                                                                                self.ingredient['ingredient_unit_type'],
+                                                                                self.ingredient['kroger_upc'],
+                                                                                self.ingredient['kroger_quantity']))
         self.edit_button.grid(column=3, row=0)
         self.del_button: Button = Button(self,
                                          text='X',
@@ -156,6 +156,7 @@ class IngredientComponent(Frame):
             self.mtype_label.config(text=ingredient_unit_type)
             self.kroger_upc.config(text=kroger_upc)
             self.kroger_quantity.config(text=kroger_quantity)
+            self.ingredient = ingredient_dict
         edit_window.destroy()
 
     def _delete_confirmation(self, ingredient_name: str):
