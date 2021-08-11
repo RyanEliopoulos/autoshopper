@@ -196,6 +196,10 @@ class Model:
             refreshed.
         """
         ingredient_dict: dict = parameter_dict['parameter']
+        # Validating UPC
+        ret = self._valid_upc(ingredient_dict['kroger_upc'])
+        if ret[0] != 0:
+            return ret
         ret = self.db_interface.update_ingredient(ingredient_dict)
         if ret[0] == 0:
             ingredient_id: int = ingredient_dict['ingredient_id']
