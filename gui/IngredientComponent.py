@@ -32,16 +32,125 @@ class IngredientComponent(Frame):
         self.kroger_quantity: Label = self.label_factory(ingredient['kroger_quantity'],
                                                          2,
                                                          1)
-        self.del_button: Button = Button(self, text='X', command=self._delete_ingredient)
-        self.del_button.grid(column=3, row=0, rowspan=1)
+        self.edit_button:Button = Button(self,
+                                         text='E',
+                                         command=lambda: self._edit_ingredients(ingredient['ingredient_name'],
+                                                                                ingredient['ingredient_quantity'],
+                                                                                ingredient['ingredient_unit_type'],
+                                                                                ingredient['kroger_upc'],
+                                                                                ingredient['kroger_quantity']))
+        self.edit_button.grid(column=3, row=0)
+        self.del_button: Button = Button(self,
+                                         text='X',
+                                         command=lambda: self._delete_confirmation(self.ingredient['ingredient_name']))
+        self.del_button.grid(column=4, row=0, rowspan=1)
 
-        # Edit button and delete button
     def label_factory(self, text: str, column: int, row: int) -> Label:
         new_label: Label = Label(self, text=text)
         new_label.grid(column=column, row=row)
         return new_label
 
-    def _delete_ingredient(self):
+    def _edit_ingredients(self,
+                          ingredient_name: str,
+                          ingredient_quantity: float,
+                          ingredient_unit_type: str,
+                          kroger_upc: str,
+                          kroger_quantity: float):
+
+        """ Opens a window with entry widgets for editing """
+        new_window: Toplevel = Toplevel(height=1000, width=1000)
+        # Row 1 - ingredient name
+        name_label: Label = Label(new_window, text='Ingredient name')
+        name_label.grid(column=0, row=0)
+        temp_iname: StringVar = StringVar()
+        temp_iname.set(ingredient_name)
+        name_entry: Entry = Entry(new_window, textvariable=temp_iname)
+        name_entry.grid(column=1, row=0)
+        # Row 2 - ingredient quantity
+        iquant_label: Label = Label(new_window, text='Quantity')
+        iquant_label.grid(column=0, row=1)
+        temp_iquantity: DoubleVar = DoubleVar()
+        temp_iquantity.set(ingredient_quantity)
+        iquant_entry: Entry = Entry(new_window, textvariable=temp_iquantity)
+        iquant_entry.grid(column=1, row=1)
+        # Row 3 - measure type
+        mtype_label: Label = Label(new_window, text='Measure type')
+        mtype_label.grid(column=0, row=2)
+        temp_mtype: StringVar = StringVar()
+        temp_mtype.set(ingredient_unit_type)
+        mtype_entry: Entry = Entry(new_window, textvariable=temp_mtype)
+        mtype_entry.grid(column=1, row=2)
+        # Row 4 - Kroger UPC
+        kupc_label: Label = Label(new_window, text='Kroger UPC')
+        kupc_label.grid(column=0, row=3)
+        temp_kupc: StringVar = StringVar()
+        temp_kupc.set(kroger_upc)
+        kupc_entry: Entry = Entry(new_window, textvariable=temp_kupc)
+        kupc_entry.grid(column=1, row=3)
+        # Row 5 - Kroger quantity
+        kquant_label: Label = Label(new_window, text='Kroger quantity')
+        kquant_label.grid(column=0, row=4)
+        temp_kquant: DoubleVar = DoubleVar()
+        temp_kquant.set(kroger_quantity)
+        kquant_entry: Entry = Entry(new_window, textvariable=temp_kquant)
+        kquant_entry.grid(column=1, row=4)
+        # Row 6 - Save/Discard buttons
+        save_button: Button = Button(new_window, text='Save', command=lambda: self._save_edit(temp_iname.get(),
+                                                                                              temp_iquantity.get(),
+                                                                                              temp_mtype.get(),
+                                                                                              temp_kupc.get(),
+                                                                                              temp_kquant.get(),
+                                                                                              new_window))
+        save_button.grid(column=0, row=5)
+        discard_button: Button = Button(new_window, text='Discard', command=lambda: new_window.destroy())
+        discard_button.grid(column=1, row=5)
+
+    def _save_edit(self,
+                   ingredient_name: str,
+                   ingredient_quantity: float,
+                   ingredient_unit_type: str,
+                   kroger_upc: str,
+                   kroger_quantity: float,
+                   edit_window: Toplevel):
+        """ Saves the contents from the edit window """
+        ingredient_dict: dict = {
+            'ingredient_id': self.ingredient['ingredient_id'],
+            'ingredient_name': ingredient_name,
+            'ingredient_quantity': ingredient_quantity,
+            'ingredient_unit_type': ingredient_unit_type,
+            'kroger_upc': kroger_upc,
+            'kroger_quantity': kroger_quantity,
+        }
+        root: 'View' = self.winfo_toplevel()
+        # Packaging for controller
+        payload: dict = {
+            'change': 'update_ingredient',
+            'parameter': ingredient_dict
+        }
+        ret = root.controller.edit_recipe(self.recipe_id, payload)
+        if ret[0] != 0:
+            error_message(ret)
+        else:
+            # Updating labels
+            self.name_label.config(text=ingredient_name)
+            self.iquantity_label.config(text=ingredient_quantity)
+            self.mtype_label.config(text=ingredient_unit_type)
+            self.kroger_upc.config(text=kroger_upc)
+            self.kroger_quantity.config(text=kroger_quantity)
+        edit_window.destroy()
+
+    def _delete_confirmation(self, ingredient_name: str):
+        """ Opens a dialog box allowing user to confirm/deny proper usage of the delete button """
+        new_window: Toplevel = Toplevel(height=300, width=300)
+        name_label: Label = Label(new_window, text=f'delete {ingredient_name}?')
+        name_label.grid(column=0, row=0, columnspan=2)
+        ok_button: Button = Button(new_window, text='Confirm', command=lambda: self._delete_ingredient(new_window))
+        ok_button.grid(column=0, row=1)
+        cancel_button: Button = Button(new_window, text='Cancel', command=lambda: new_window.destroy())
+        cancel_button.grid(column=1, row=1)
+
+    def _delete_ingredient(self, confirmation_window: Toplevel):
+        confirmation_window.destroy()
         # Ask controller to perform the deletion
         root: 'View' = self.winfo_toplevel()
         payload: dict = {'change': 'delete_ingredient',

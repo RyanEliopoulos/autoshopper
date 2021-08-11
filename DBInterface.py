@@ -13,7 +13,7 @@ class DBInterface:
 
     def manual_debug(self):
         sqlstring: str = """ SELECT *
-                             FROM api_token
+                             FROM recipe_ingredients
                          """
         ret = self._execute_query(sqlstring)
         if ret[0] != 0:
@@ -61,7 +61,7 @@ class DBInterface:
         # Only one token row exists at a time. Reuses id 1
         sqlstring = """ CREATE TABLE api_token (
                         token_id INT PRIMARY KEY,
-                        refresh_token STRING NOT NULL,
+                        refresh_token TEXT NOT NULL,
                         timestamp REAL NOT NULL)
                     """
         ret: tuple = self._execute_query(sqlstring)
@@ -70,18 +70,18 @@ class DBInterface:
         # Creating recipe tables
         sqlstring = """ CREATE TABLE recipes (
                         recipe_id INTEGER PRIMARY KEY NOT NULL,
-                        recipe_title STRING NOT NULL,
-                        recipe_notes STRING NOT NULL)
+                        recipe_title TEXT NOT NULL,
+                        recipe_notes TEXT NOT NULL)
                     """
         ret = self._execute_query(sqlstring)
         if ret[0] != 0:
             return ret
         sqlstring = """ CREATE TABLE recipe_ingredients (
                         ingredient_id INTEGER PRIMARY KEY,
-                        ingredient_name STRING NOT NULL,
+                        ingredient_name TEXT NOT NULL,
                         ingredient_quantity REAL NOT NULL,
-                        ingredient_unit_type STRING NOT NULL,
-                        kroger_upc STRING NOT NULL,
+                        ingredient_unit_type TEXT NOT NULL,
+                        kroger_upc CHARACTER(13) NOT NULL,
                         kroger_quantity REAL NOT NULL,
                         recipe_id INT NOT NULL,
                         FOREIGN KEY(recipe_id) REFERENCES recipes(recipe_id))
@@ -152,6 +152,7 @@ class DBInterface:
 
     def add_recipe(self, recipe: dict) -> tuple[int, dict]:
         """
+        Deprecated. Favor is given to new_recipe.
         recipe:  {'recipe_title': str,
                   'recipe_notes': str,
                   'ingredients': {<ingredient1>: {'ingredient_quantity': float,
@@ -272,7 +273,7 @@ class DBInterface:
             new_ingredient['ingredient_quantity'] = row['ingredient_quantity']
             new_ingredient['ingredient_unit_type'] = row['ingredient_unit_type']
             new_ingredient['kroger_upc'] = str(row['kroger_upc'])
-            new_ingredient['kroger_quantity'] = (row['kroger_upc'])
+            new_ingredient['kroger_quantity'] = row['kroger_quantity']
             new_recipe['ingredients'][ingredient_id] = new_ingredient
         return 0, recipes
 
@@ -367,8 +368,42 @@ class DBInterface:
         self.db_connection.commit()
         return 0, {}
 
+    def update_ingredient(self, ingredient_dict: dict):
+        """ Rather than add or delete ingredient, this is meant to update an ingredient that
+            has been edited. The specifics aren't tracked, so every field is refreshed in the database
+
+            ingredient_dict is in unpacked form.
+        """
+        # Unpacking ingredient fields
+        ingredient_id = ingredient_dict['ingredient_id']
+        ingredient_name = ingredient_dict['ingredient_name']
+        ingredient_quantity = ingredient_dict['ingredient_quantity']
+        ingredient_unit_type = ingredient_dict['ingredient_unit_type']
+        kroger_upc = ingredient_dict['kroger_upc']
+        kroger_quantity = ingredient_dict['kroger_quantity']
+        # Engaging sql query
+        sqlstring: str = """ UPDATE recipe_ingredients
+                             SET 
+                                ingredient_name = (?)
+                                ,ingredient_quantity = (?)
+                                ,ingredient_unit_type = (?)
+                                ,kroger_upc = (?)
+                                ,kroger_quantity = (?)
+                            WHERE ingredient_id = (?)
+                         """
+        ret = self._execute_query(sqlstring, (ingredient_name,
+                                              ingredient_quantity,
+                                              ingredient_unit_type,
+                                              kroger_upc,
+                                              kroger_quantity,
+                                              ingredient_id))
+        if ret[0] == 0:
+            self.db_connection.commit()
+        return ret
+
     def new_recipe(self) -> tuple[int, dict]:
         """
+        Used over add_recipe since this doesn't require buffering data before creation.
 
         :return:  {'ingredient_id': <>, 'ingredient_name': <>, etc.. }
         """

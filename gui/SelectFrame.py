@@ -18,6 +18,7 @@ class SelectFrame(Frame):
         self.parent: Frame = parent
         self.ssf = ssf
         self.recipe_id: int = recipe['recipe_id']
+        self.recipe: dict = recipe
         self.default_color: str = bg
         self.grid(column=0, row=row, sticky=(N, S, E, W))  # Sticky ensures full sizing Perhaps "weight" in the parent would do as well
         self.propagate(False)

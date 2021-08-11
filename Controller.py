@@ -37,6 +37,7 @@ class Controller:
         valid_changes = {
             'add_ingredient': self.model.add_ingredient,
             'delete_ingredient': self.model.delete_ingredient,
+            'update_ingredient': self.model.update_ingredient,
             'rename_recipe': self.model.retitle_recipe,
             'update_notes': self.model.update_notes
         }

@@ -187,6 +187,21 @@ class Model:
         self.recipes[recipe_id]['ingredients'].pop(ingredient_id)
         return ret
 
+    def update_ingredient(self, recipe_id: int, parameter_dict: dict):
+        """ ingredient will be in unpacked form: {'ingredient_id': <>,
+                                                 'ingredient_name': <>,
+                                                 'ingredient_quantity': <>, ... }
+
+            Updates all ingredient fields. Specific changes aren't tracked upon edit so everything is
+            refreshed.
+        """
+        ingredient_dict: dict = parameter_dict['parameter']
+        ret = self.db_interface.update_ingredient(ingredient_dict)
+        if ret[0] == 0:
+            ingredient_id: int = ingredient_dict['ingredient_id']
+            self.recipes[recipe_id]['ingredients'][ingredient_id] = copy.deepcopy(ingredient_dict)
+        return ret
+
     def retitle_recipe(self, recipe_id: int, change_dict: dict) -> tuple[int, dict]:
         """ Update database and Model """
         new_title = change_dict['parameter']
