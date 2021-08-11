@@ -1,6 +1,7 @@
 from tkinter import *
 from gui.HeaderFrame import HeaderFrame
 from gui.IngredientFrame import IngredientFrame
+from gui.NoteFrame import NoteFrame
 
 
 class DetailFrame(Frame):
@@ -32,7 +33,15 @@ class DetailFrame(Frame):
                                            row=0,
                                            recipe_name=recipe['recipe_title'],
                                            recipe_id=self.recipe_id)
-        self.ing_frame: IngredientFrame = IngredientFrame(self, 0, 1, recipe)
+        self.ing_frame: IngredientFrame = IngredientFrame(self,
+                                                          0,
+                                                          1,
+                                                          recipe)
+        self.note_frame: NoteFrame = NoteFrame(self,
+                                               self.recipe_id,
+                                               recipe['recipe_notes'],
+                                               column=0,
+                                               row=2,)
 
         # Toggling scrolling
         self.bind('<Enter>', lambda evnt: evnt.widget.bind('<MouseWheel>', self.dsf.on_mousewheel))

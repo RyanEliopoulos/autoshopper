@@ -214,9 +214,10 @@ class Model:
             self.recipes[recipe_id]['recipe_title'] = new_title
         return ret
 
-    def update_notes(self, recipe_id: int, noted_dict: dict) -> tuple[int, dict]:
-        updated_notes: str = noted_dict['updated_recipe_notes']
-        ret = self.db_interface.update_notes(recipe_id, updated_notes)
+    def update_notes(self, recipe_id: int, change_dict: dict) -> tuple[int, dict]:
+        unpacked_dict = change_dict['parameter']
+        new_notes: str = unpacked_dict['recipe_notes']
+        ret = self.db_interface.update_notes(recipe_id, new_notes)
         if ret[0] == 0:
-            self.recipes[recipe_id]['recipe_notes'] = updated_notes
+            self.recipes[recipe_id]['recipe_notes'] = new_notes
         return ret
