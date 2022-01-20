@@ -259,3 +259,63 @@ class Communicator:
             print(req.text)
             return -1, {'error_message': f'Failed to load groceries: ' + req.text}
         return 0, {'success_message': 'Successfully loaded groceries into cart'}
+
+    def search_products(self, search_string: str) -> tuple[int, dict]:
+        if len(search_string) < 4:
+            return -1, {'error_message': 'String must be at least 3 characters'}
+
+        if not self.valid_token(self.access_token_timestamp, 'access'):
+            self.token_refresh()
+        # headers: dict = {
+        #     'Content-Type': 'application/x-www-form-urlencoded'
+        #     , 'Authorization': f'Bearer {self.access_token}'
+        # }
+
+        headers: dict = {
+            'Accept': 'application/json'
+            , 'Authorization': f'Bearer {self.access_token}'
+        }
+
+        params = {
+            'filter.term': search_string,
+            'filter.locationId': '70100140',
+            'filter.fulfillment': 'csp',
+            'filter.start': '1',
+            'filter.limit': '5',
+        }
+        # encoded_params = urllib.parse.urlencode(params)
+        # target_url: str = f'{self.api_base}products/{encoded_params}'
+        target_url: str = f'{self.api_base}products'
+
+        req = requests.get(target_url, headers=headers, params=params)
+        if req.status_code != 200:
+            Logger.Logger.log_error(f'Error searching for product: {req.text}')
+            print(f'Status code: {req.status_code}')
+            print(f'Status code: {req.text}')
+            exit(1)
+
+        return 0, req.json()
+
+    def product_details(self, upc):
+
+        if not self.valid_token(self.access_token_timestamp, 'access'):
+            self.token_refresh()
+        headers: dict = {
+            'Content-Type': 'application/x-www-form-urlencoded'
+            , 'Authorization': f'Bearer {self.access_token}'
+        }
+        params = {
+            'filter.locationId': '70100140',
+        }
+        target_url: str = f'{self.api_base}products/{upc}'
+
+        req = requests.get(target_url, headers=headers, params=params)
+        if req.status_code != 200:
+            print(f'Error retrieving product details: {req.text}')
+            print(f'Error retrieving product details: {req.status_code}')
+            exit(1)
+
+        return 0, req.json()
+
+
+
